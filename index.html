@@ -1038,7 +1038,14 @@ function fromAI(x) {
     // Clothes go to the Clothes Closet entrance at the same Sacred Heart site
     if (org === 'sacred' && local.status === 'accept' && local.dest === 'closet') org = 'closet';
     const hot = local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[org].site;
-    return { ...entry, fixed: { kind: 'accept', options: [org], hot: !!hot, note: reason } };
+    // If the built-in rules know other places that also take it (canned food: Second Harvest or Sacred Heart),
+    // keep them all so the optimizer can merge stops; Claude's pick stays first
+    let options = [org];
+    if (local.status === 'accept') {
+      const alts = dropOrgs(local).filter(o => ORGS[o].site !== ORGS[org].site);
+      if (dropOrgs(local).some(o => ORGS[o].site === ORGS[org].site)) options = [org, ...alts];
+    }
+    return { ...entry, fixed: { kind: 'accept', options, hot: !!hot, note: reason } };
   }
   if (d === 'habitat_restore' || d === 'goodwill_sv') {
     if (local.status === 'reject') return { ...entry, ai: false };            // e.g. a broken chair
