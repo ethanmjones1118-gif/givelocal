@@ -53,6 +53,10 @@
   .leaflet-tooltip.site-tip.start::before { border-top-color: transparent; border-bottom-color: #2563EB; }
   button, a, select { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
+  .trip-pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9999px; border: 3px solid #fff; color: #fff; font: 700 13px/1 "Plus Jakarta Sans", system-ui, sans-serif; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
+  .trip-pin.green { background: #047857; }
+  .trip-pin.amber { background: #B45309; }
+  .leaflet-tooltip-left.site-tip::before, .leaflet-tooltip-right.site-tip::before { border-top-color: transparent; }
   :focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
 </style>
 </head>
@@ -117,7 +121,6 @@
           <div class="relative isolate">
             <div id="map" class="h-[300px] md:h-[430px] bg-slate-100"></div>
           </div>
-          <p id="routeChip" hidden class="flex items-center gap-2 px-3.5 py-2.5 border-t border-slate-200 text-[13px] font-medium text-slate-800"></p>
         </aside>
       </div>
     </section>
@@ -587,71 +590,39 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 
 /* =====================================================================
-   WHERE THE DONOR STARTS + DRIVING ROUTES
+   WHERE THE DONOR STARTS
    ===================================================================== */
 const STARTS = {
-  campbell:   { label: 'Campbell',          lat: 37.2872, lng: -121.9500 },
-  downtown:   { label: 'Downtown San Jose', lat: 37.3382, lng: -121.8863 },
-  north:      { label: 'North San Jose',    lat: 37.3894, lng: -121.9295 },
-  santaclara: { label: 'Santa Clara',       lat: 37.3541, lng: -121.9552 },
-  milpitas:   { label: 'Milpitas',          lat: 37.4323, lng: -121.8996 },
+  campbell:   { label: 'Campbell',          place: 'Campbell, CA',          lat: 37.2872, lng: -121.9500 },
+  downtown:   { label: 'Downtown San Jose', place: 'Downtown San Jose, CA', lat: 37.3382, lng: -121.8863 },
+  north:      { label: 'North San Jose',    place: 'North San Jose, CA',    lat: 37.3894, lng: -121.9281 },
+  santaclara: { label: 'Santa Clara',       place: 'Santa Clara, CA',       lat: 37.3541, lng: -121.9552 },
+  milpitas:   { label: 'Milpitas',          place: 'Milpitas, CA',          lat: 37.4323, lng: -121.8996 },
 };
 const START_KEY = 'givelocal-start';
 let startKey = 'campbell', start = { ...STARTS.campbell };
 try { const k = localStorage.getItem(START_KEY); if (k && STARTS[k]) { startKey = k; start = { ...STARTS[k] }; } } catch (_) {}
 
 const rad = (d) => d * Math.PI / 180;
-function milesBetween(a, b) {
+function haversineMi(a, b) {
   const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * 3958.8 * Math.asin(Math.sqrt(h));
 }
-// Before the real route arrives: straight-line distance plus a typical detour factor for city streets
-const estMiles = (site) => milesBetween(start, SITES[site]) * 1.3;
-
-// Real driving routes from the public OSRM server, fetched one at a time and remembered
-const routeDone = new Map(), routePending = new Map();
-let routeQueue = Promise.resolve();
-const routeKey = (site) => `${start.lat.toFixed(4)},${start.lng.toFixed(4)}>${site}`;
-function getRoute(site) {
-  const key = routeKey(site);
-  if (routeDone.has(key)) return Promise.resolve(routeDone.get(key));
-  if (routePending.has(key)) return routePending.get(key);
-  const from = { ...start }, to = SITES[site];
-  const p = (routeQueue = routeQueue.then(async () => {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 6000);
-      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (!res.ok) throw new Error('route');
-      const r = (await res.json()).routes[0];
-      const out = { ok: true, coords: r.geometry.coordinates.map(([x, y]) => [y, x]), mi: r.distance / 1609.344, min: Math.max(1, Math.round(r.duration / 60)) };
-      routeDone.set(key, out);
-      return out;
-    } catch (_) {
-      // Offline or the route server is busy: a straight dashed line and an estimate instead
-      return { ok: false, coords: [[from.lat, from.lng], [to.lat, to.lng]], mi: milesBetween(from, to) * 1.3 };
-    } finally { routePending.delete(key); }
-  }));
-  routePending.set(key, p);
-  return p;
-}
-function distText(site) {
-  const r = routeDone.get(routeKey(site));
-  return r ? `${r.mi.toFixed(1)} mi · ${r.min} min drive from ${start.label}` : `About ${estMiles(site).toFixed(1)} mi from ${start.label}`;
-}
-function updateDistances() {
-  document.querySelectorAll('[data-dist]').forEach(el => { el.textContent = distText(el.dataset.dist); });
-}
+// Offline estimate for one leg: straight line x 1.3 for city streets, at about 28 mph
+const estLeg = (a, b) => { const mi = haversineMi(a, b) * 1.3; return { mi, min: Math.max(2, Math.round(mi / 28 * 60)) }; };
 
 /* =====================================================================
-   MAP (Leaflet + OpenStreetMap)
+   PLACES, LINKS AND OPENING HOURS
    ===================================================================== */
-let map = null, markers = {}, startMarker = null, routeLine = null, routeSeq = 0;
-let activeSite = null, planSites = [];
-const gmapsDir = (place) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
-const sitePlace = (k) => SITES[k].partner ? `${PARTNERS[k].name}, ${PARTNERS[k].address}` : `${ORGS[k].name}, ${ORGS[k].address}`;
+const siteName = (k) => SITES[k].partner ? PARTNERS[k].name : ORGS[k].name;
+const siteAddr = (k) => SITES[k].partner ? PARTNERS[k].address : ORGS[k].address;
+const sitePlace = (k) => `${siteName(k)}, ${siteAddr(k)}`;
+const startPlace = () => startKey === 'gps' ? `${start.lat},${start.lng}` : start.place;
+const gmapsDir = (place, from) => `https://www.google.com/maps/dir/?api=1${from ? `&origin=${encodeURIComponent(from)}` : ''}&destination=${encodeURIComponent(place)}&travelmode=driving`;
+// One link for the whole trip: /maps/dir/Origin/Stop1/Stop2/...
+const fullTripUrl = (stops) => 'https://www.google.com/maps/dir/' + [startPlace(), ...stops.map(s => sitePlace(s.site))].map(p => encodeURIComponent(p).replace(/%20/g, '+')).join('/');
+
 function openState(o) {
   const h = todayHours(o);
   return { open: h.open, detail: h.text.replace(/^(Open|Closed) now · /, '').replace(/^Opens/, 'opens') };
@@ -660,25 +631,37 @@ const openBadge = (o) => {
   const s = openState(o);
   return `<span class="inline-flex items-center gap-1 text-[12.5px] font-semibold ${s.open ? 'text-emerald-700' : 'text-slate-500'}">${s.open ? '● Open Now' : '○ Closed'}<span class="font-normal text-slate-500">· ${s.detail}</span></span>`;
 };
+// Goodwill and ReStore hours aren't verified here, so the page says so instead of guessing
+const siteStatus = (k, org) => SITES[k].partner
+  ? '<span class="text-[12.5px] text-slate-500">Hours vary · check before you go</span>'
+  : openBadge(ORGS[org || k]);
+
+/* =====================================================================
+   MAP (Leaflet + OpenStreetMap)
+   ===================================================================== */
+let map = null, baseMarkers = {}, startMarker = null, tripLayer = null;
+let trip = { stops: [] };          // the current optimized trip
+let tripSeq = 0;                   // ignores route answers that arrive after the plan changed
 
 function popupHtml(k) {
-  const partner = SITES[k].partner;
-  const name = partner ? PARTNERS[k].name : ORGS[k].name;
-  const addr = partner ? PARTNERS[k].address : ORGS[k].address;
-  const hours = partner
+  const idx = trip.stops.findIndex(s => s.site === k);
+  const hours = SITES[k].partner
     ? '<p class="mt-1 text-[12px] text-slate-500">Hours vary, so check before you go.</p>'
     : `<p class="mt-1 text-[12px] text-slate-600">${hoursLine(ORGS[k])}${k === 'sacred' ? ' (Clothes Closet to 3:30 PM)' : ''}</p><p class="mt-0.5">${openBadge(ORGS[k])}</p>`;
   return `
     <div class="font-sans">
-      <p class="text-[14px] font-semibold text-slate-900 leading-snug">${name}</p>
-      <p class="mt-0.5 text-[12px] text-slate-600">${addr}</p>
+      ${idx >= 0 ? `<p class="text-[11px] font-semibold uppercase tracking-[0.06em] text-emerald-700">Stop ${idx + 1} on your trip</p>` : ''}
+      <p class="text-[14px] font-semibold text-slate-900 leading-snug">${siteName(k)}</p>
+      <p class="mt-0.5 text-[12px] text-slate-600">${siteAddr(k)}</p>
       ${hours}
-      <div class="mt-2.5 flex flex-wrap gap-1.5">
-        <button type="button" data-route="${k}" class="h-8 rounded-lg bg-slate-900 px-2.5 text-[12px] font-semibold text-white hover:bg-slate-700">Route from ${esc(start.label)}</button>
-        <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k))}" class="inline-flex items-center h-8 rounded-lg border border-slate-200 px-2.5 text-[12px] font-semibold !text-slate-700 hover:border-slate-400">Google Maps ↗</a>
-      </div>
+      <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k), startPlace())}" class="mt-2.5 inline-flex items-center h-8 rounded-lg bg-slate-900 px-2.5 text-[12px] font-semibold !text-white hover:bg-slate-700">Directions from ${esc(start.label)} ↗</a>
     </div>`;
 }
+const numberIcon = (n, partner) => L.divIcon({
+  className: '',
+  html: `<span class="trip-pin ${partner ? 'amber' : 'green'}">${n}</span>`,
+  iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14], tooltipAnchor: [0, -14],
+});
 
 function initMap() {
   if (!window.L) {
@@ -688,117 +671,172 @@ function initMap() {
   map = L.map('map', { scrollWheelZoom: false }).setView([37.37, -121.91], 11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map);
   map.attributionControl.setPrefix(false);
+  // Every place has a small grey pin; stops on the trip get a numbered pin instead
   for (const k of Object.keys(SITES)) {
-    markers[k] = L.circleMarker([SITES[k].lat, SITES[k].lng], { radius: 6, weight: 2, color: '#fff', fillColor: '#94A3B8', fillOpacity: 1 })
-      .addTo(map)
-      .bindPopup(() => popupHtml(k), { minWidth: 220, maxWidth: 260 });
+    baseMarkers[k] = L.circleMarker([SITES[k].lat, SITES[k].lng], { radius: 6, weight: 2, color: '#fff', fillColor: '#94A3B8', fillOpacity: 0.85 })
+      .bindPopup(() => popupHtml(k), { minWidth: 220, maxWidth: 260 })
+      .bindTooltip(SITES[k].label, { direction: 'top', offset: [0, -8], className: 'site-tip dim' })
+      .addTo(map);
   }
+  tripLayer = L.layerGroup().addTo(map);
   startMarker = L.circleMarker([start.lat, start.lng], { radius: 8, weight: 3, color: '#fff', fillColor: '#2563EB', fillOpacity: 1 })
     .addTo(map)
     .bindPopup(() => `<div class="font-sans"><p class="text-[14px] font-semibold text-slate-900">Starting from ${esc(start.label)}</p><p class="mt-0.5 text-[12px] text-slate-600">Change it with the menu above the map.</p></div>`)
     .bindTooltip('Start', { permanent: true, direction: 'bottom', offset: [0, 8], className: 'site-tip start' });
-  if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize()).observe($('#map'));
+  if (window.ResizeObserver) new ResizeObserver(() => { map.invalidateSize(); fitMap(); }).observe($('#map'));
 }
 
-// Active pins are large and labelled; the rest are small and grey (their name shows on hover)
-function styleMarkers() {
-  if (!map) return;
-  for (const [k, m] of Object.entries(markers)) {
-    const on = planSites.includes(k) || k === activeSite;
-    const color = SITES[k].partner ? '#B45309' : '#047857';
-    m.setStyle({ radius: k === activeSite ? 11 : on ? 9 : 6, fillColor: on ? color : '#94A3B8', fillOpacity: on ? 1 : 0.75 });
-    m.unbindTooltip();
-    // Goodwill and ReStore are 2 miles apart, so their labels sit on opposite sides
-    // (and Second Harvest's label goes below its pin, clear of Humane Society's)
-    const dir = k === 'goodwill' ? 'left' : k === 'restore' ? 'right' : k === 'harvest' ? 'bottom' : 'top';
-    const offset = { left: [-10, 0], right: [10, 0], bottom: [0, 9], top: [0, -9] }[dir];
-    m.bindTooltip(SITES[k].label, { permanent: on, direction: dir, offset, className: on ? 'site-tip' : 'site-tip dim' });
-    if (on) m.bringToFront();
-  }
-  startMarker.setLatLng([start.lat, start.lng]).bringToFront();
-}
-// Map fits are instant, not animated: Leaflet's animated zooms can be dropped or finish late
-// (for example in a background tab) and leave the map showing the wrong area.
+// Instant fits: animated zooms can be dropped (for example in a background tab) and leave the wrong area showing
 let fitTimer = 0;
 function fitMap() {
   if (!map) return;
   clearTimeout(fitTimer);
   fitTimer = setTimeout(() => {
-    const keys = planSites.length ? planSites : Object.keys(SITES);
     const b = L.latLngBounds([[start.lat, start.lng]]);
-    keys.forEach(k => b.extend([SITES[k].lat, SITES[k].lng]));
-    if (activeSite) b.extend([SITES[activeSite].lat, SITES[activeSite].lng]);
-    if (routeLine) b.extend(routeLine.getBounds());
+    (trip.stops.length ? trip.stops.map(s => s.site) : Object.keys(SITES)).forEach(k => b.extend([SITES[k].lat, SITES[k].lng]));
+    tripLayer.eachLayer(l => { if (l.getBounds) b.extend(l.getBounds()); });
     map.stop();
-    // Extra room on the sides where the Goodwill (left) and ReStore (right) labels sit
-    const shown = (k) => planSites.includes(k) || activeSite === k;
-    map.fitBounds(b, { paddingTopLeft: [shown('goodwill') ? 64 : 40, 44], paddingBottomRight: [shown('restore') ? 64 : 40, 40], maxZoom: 13, animate: false });
+    map.fitBounds(b, { padding: [44, 44], maxZoom: 13, animate: false });
   }, 30);
 }
-async function drawRoute() {
+
+function drawTripMarkers() {
   if (!map) return;
-  const seq = ++routeSeq, chip = $('#routeChip');
-  if (routeLine) { routeLine.remove(); routeLine = null; }
-  if (!activeSite) { chip.hidden = true; fitMap(); return; }
-  const site = activeSite, s = SITES[site], color = s.partner ? '#B45309' : '#047857';
-  const cached = routeDone.get(routeKey(site));
-  if (!cached) {
-    routeLine = L.polyline([[start.lat, start.lng], [s.lat, s.lng]], { color, weight: 3, dashArray: '6 8', opacity: 0.6 }).addTo(map);
-    chip.hidden = false;
-    chip.innerHTML = `<i data-lucide="loader-2" class="h-3.5 w-3.5 spin shrink-0 text-slate-500"></i><span>Finding the route to ${esc(s.label)}…</span>`; icons();
-    fitMap();
+  tripLayer.clearLayers();
+  const onTrip = new Set(trip.stops.map(s => s.site));
+  for (const [k, m] of Object.entries(baseMarkers)) {
+    if (onTrip.has(k)) { if (map.hasLayer(m)) m.remove(); }
+    else if (!map.hasLayer(m)) m.addTo(map);
   }
-  const r = cached || await getRoute(site);
-  if (seq !== routeSeq) return;
-  if (routeLine) routeLine.remove();
-  routeLine = L.polyline(r.coords, r.ok ? { color, weight: 5, opacity: 0.9, lineJoin: 'round' } : { color, weight: 3, dashArray: '6 8', opacity: 0.8 }).addTo(map);
-  chip.hidden = false;
-  chip.innerHTML = `<i data-lucide="route" class="h-3.5 w-3.5 shrink-0" style="color:${color}"></i><span>${r.ok
-    ? `${esc(s.label)}: ${r.mi.toFixed(1)} mi · ${r.min} min drive`
-    : `${esc(s.label)}: about ${r.mi.toFixed(1)} mi. Live route unavailable, so a straight line is shown.`}</span>`;
-  icons();
-  styleMarkers();
-  fitMap();
-  updateDistances();
-}
-// Fill in real driving distances for every stop in the plan
-function prefetchDistances() {
-  planSites.forEach(k => getRoute(k).then(r => { if (r.ok) updateDistances(); }));
-}
-function showRoute(site) {
-  if (!SITES[site]) return;
-  activeSite = site;
-  if (map) map.closePopup();
-  markRouteButtons();
-  styleMarkers();
-  drawRoute();
-  const rect = $('#mapPanel').getBoundingClientRect();
-  if (rect.top < 60 || rect.bottom > innerHeight) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-function markRouteButtons() {
-  document.querySelectorAll('#resultLeft [data-route]').forEach(b => {
-    const on = b.dataset.route === activeSite;
-    b.setAttribute('aria-pressed', on);
-    b.querySelector('span').textContent = on ? 'Route Shown on Map' : 'Show Route on Map';
-    b.classList.toggle('bg-slate-900', on); b.classList.toggle('text-white', on); b.classList.toggle('border-slate-900', on);
-    b.classList.toggle('bg-white', !on); b.classList.toggle('text-slate-800', !on); b.classList.toggle('border-slate-300', !on);
+  trip.stops.forEach((s, i) => {
+    L.marker([SITES[s.site].lat, SITES[s.site].lng], { icon: numberIcon(i + 1, SITES[s.site].partner), zIndexOffset: 1000 })
+      .bindPopup(() => popupHtml(s.site), { minWidth: 220, maxWidth: 260 })
+      .bindTooltip(SITES[s.site].label, { permanent: true, direction: i % 2 ? 'left' : 'right', offset: i % 2 ? [-12, 0] : [12, 0], className: 'site-tip' })
+      .addTo(tripLayer);
   });
+  startMarker.setLatLng([start.lat, start.lng]).bringToFront();
 }
-// One listener covers the buttons in the cards and inside map popups
-document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-route]');
-  if (b) showRoute(b.dataset.route);
-});
+function drawTripLine(coords, real) {
+  if (!map) return;
+  tripLayer.eachLayer(l => { if (l instanceof L.Polyline) tripLayer.removeLayer(l); });
+  if (!coords || coords.length < 2) return;
+  L.polyline(coords, real
+    ? { color: '#047857', weight: 5, opacity: 0.85, lineJoin: 'round' }
+    : { color: '#047857', weight: 3, opacity: 0.7, dashArray: '6 8' }).addTo(tripLayer);
+}
+
+/* =====================================================================
+   MULTI-STOP ROUTE OPTIMIZER
+   1. Each item lists the places that accept it.
+   2. Items with one choice fix those stops; items with several choices join a stop
+      already on the trip, or else go to the choice nearest the trip so far.
+   3. Nearest-neighbor ordering from the starting point (straight-line Haversine distance).
+   4. OSRM draws the real road route through every stop and gives the true miles and minutes.
+   ===================================================================== */
+function sitesFor(i) {
+  if (i.kind === 'accept') return [...new Set(i.options.map(o => ORGS[o].site))];
+  if (i.kind === 'redirect' && REDIRECTS[i.to].places) return [...REDIRECTS[i.to].places];
+  return [];
+}
+function optimizeTrip(items) {
+  const chosen = new Map();   // site -> { site, items: [], orgs: Set }
+  const add = (site, it) => {
+    if (!chosen.has(site)) chosen.set(site, { site, items: [], orgs: new Set() });
+    const s = chosen.get(site);
+    s.items.push(it);
+    if (it.kind === 'accept') {
+      const org = it.options.find(o => ORGS[o].site === site);
+      if (org) s.orgs.add(org);
+    }
+  };
+  const routed = items.map(it => ({ it, sites: sitesFor(it) })).filter(x => x.sites.length);
+  routed.filter(x => x.sites.length === 1).forEach(x => add(x.sites[0], x.it));
+  const flexible = routed.filter(x => x.sites.length > 1);
+  // Items with fewer choices first, so the most constrained ones shape the trip
+  flexible.sort((a, b) => a.sites.length - b.sites.length);
+  for (const x of flexible) {
+    const joined = x.sites.find(s => chosen.has(s));
+    if (joined) { add(joined, x.it); continue; }
+    const anchors = [start, ...[...chosen.keys()].map(k => SITES[k])];
+    const cost = (s) => Math.min(...anchors.map(a => haversineMi(a, SITES[s])));
+    add([...x.sites].sort((a, b) => cost(a) - cost(b))[0], x.it);
+  }
+  // Nearest-neighbor ordering
+  const left = [...chosen.values()], ordered = [];
+  let cur = start;
+  while (left.length) {
+    let bi = 0;
+    left.forEach((s, i) => { if (haversineMi(cur, SITES[s.site]) < haversineMi(cur, SITES[left[bi].site])) bi = i; });
+    const next = left.splice(bi, 1)[0];
+    ordered.push(next);
+    cur = SITES[next.site];
+  }
+  // Offline leg estimates until OSRM answers
+  let prev = start;
+  ordered.forEach(s => { s.leg = estLeg(prev, SITES[s.site]); s.legReal = false; prev = SITES[s.site]; });
+  return ordered;
+}
+
+// One OSRM request for the whole trip: start;stop1;stop2;...
+const routeCache = new Map();
+async function fetchTripRoute(stops) {
+  const pts = [start, ...stops.map(s => SITES[s.site])];
+  const key = pts.map(p => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(';');
+  if (routeCache.has(key)) return routeCache.get(key);
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 7000);
+    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${key}?overview=full&geometries=geojson`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('route');
+    const r = (await res.json()).routes[0];
+    const out = {
+      ok: true,
+      coords: r.geometry.coordinates.map(([x, y]) => [y, x]),
+      legs: r.legs.map(l => ({ mi: l.distance / 1609.344, min: Math.max(1, Math.round(l.duration / 60)) })),
+    };
+    routeCache.set(key, out);
+    return out;
+  } catch (_) {
+    return { ok: false, coords: pts.map(p => [p.lat, p.lng]) };
+  }
+}
+const totals = (stops) => stops.reduce((t, s) => ({ mi: t.mi + s.leg.mi, min: t.min + s.leg.min }), { mi: 0, min: 0 });
+async function routeTrip() {
+  const seq = ++tripSeq;
+  drawTripMarkers();
+  if (!trip.stops.length) { drawTripLine(null); fitMap(); return; }
+  drawTripLine(trip.stops.length ? [start, ...trip.stops.map(s => SITES[s.site])].map(p => [p.lat, p.lng]) : null, false);
+  fitMap();
+  const r = await fetchTripRoute(trip.stops);
+  if (seq !== tripSeq) return;            // the plan changed while the route was loading
+  if (r.ok) trip.stops.forEach((s, i) => { s.leg = r.legs[i]; s.legReal = true; });
+  trip.real = r.ok;
+  drawTripLine(r.coords, r.ok);
+  fitMap();
+  updateTripNumbers();
+}
+// Fill in miles and minutes without rebuilding the cards
+function updateTripNumbers() {
+  const t = totals(trip.stops), n = trip.stops.length, approx = trip.real ? '' : '~';
+  const el = $('#tripTotals');
+  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi total (${approx}${t.min} min from ${start.label})${trip.real ? '' : ' · estimate'}`;
+  trip.stops.forEach((s, i) => {
+    const leg = document.querySelector(`[data-leg="${i}"]`);
+    if (leg) leg.textContent = `${approx}${s.leg.mi.toFixed(1)} mi · ${approx}${s.leg.min} min from ${i ? siteName(trip.stops[i - 1].site).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '') : start.label}`;
+  });
+  const title = $('#tripTitle');
+  if (title) title.textContent = `Optimized ${n}-Stop Route`;
+}
 
 /* --- Starting-point menu --- */
 const startSel = $('#startSel');
-startSel.innerHTML = Object.entries(STARTS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('') + '<option value="gps">📍 Use My GPS</option>';
+startSel.innerHTML = Object.entries(STARTS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('') + '<option value="gps">📍 My GPS</option>';
 startSel.value = startKey;
 function setStart(key, point) {
   startKey = key; start = { ...point };
   try { if (STARTS[key]) localStorage.setItem(START_KEY, key); } catch (_) {}
   startSel.value = key;
-  activeSite = null;      // route to whichever stop is nearest the new starting point
   render(false);
 }
 startSel.addEventListener('change', () => {
@@ -810,7 +848,7 @@ startSel.addEventListener('change', () => {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       // Rounded to about a block: plenty for a driving route, and kinder to your privacy
-      setStart('gps', { label: 'your location', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) });
+      setStart('gps', { label: 'your location', place: '', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) });
       toast('Using your location as the starting point');
     },
     () => { back(); toast('Couldn’t get your location. Still starting from ' + start.label + '.'); },
@@ -842,7 +880,10 @@ const QUICK = [
   { id: 'furniture', label: 'Chairs & Furniture',       icon: 'armchair',    q: 'chair' },
   { id: 'appliance', label: 'Appliances & Electronics', icon: 'microwave',   q: 'microwave' },
 ];
-const EXAMPLES = ['winter coats, dog towels, and a wooden chair', 'fresh apples, diapers, and an opened jar of salsa'];
+const EXAMPLES = [
+  { lead: 'Try multi-stop trip:', text: 'winter coats, dog towels, and a wooden chair' },
+  { lead: 'Try sorting:', text: 'fresh apples, size 5 diapers, and an opened jar of salsa' },
+];
 const pillEntry = (p) => ({ id: `pill:${p.id}`, label: p.label, q: p.q, why: p.why });
 
 let selection = [pillEntry(QUICK[0])];   // Canned Food on load
@@ -856,7 +897,7 @@ const isDefault = () => source === 'pills' && selection.length === 1 && selectio
 function setBusy(on) {
   $('#askAI').disabled = on;
   $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="sparkles" class="h-4 w-4"></i>';
-  $('#askAILabel').textContent = on ? 'Sorting…' : 'Ask AI';
+  $('#askAILabel').textContent = on ? 'Sorting...' : 'Ask AI';
   icons();
 }
 function cancelSearch() {
@@ -867,7 +908,7 @@ function cancelSearch() {
 }
 function resetToDefault() {
   cancelSearch();
-  source = 'pills'; lastAI = false; activeSite = null;
+  source = 'pills'; lastAI = false;
   selection = [pillEntry(QUICK[0])];
   input.value = '';
   render();
@@ -886,19 +927,18 @@ $('#quickPills').addEventListener('click', (e) => {
   if (source !== 'pills') { source = 'pills'; selection = []; lastAI = false; }   // a pill replaces typed results
   input.value = '';
   selection = selection.some(s => s.id === id) ? selection.filter(s => s.id !== id) : [...selection, pillEntry(p)];
-  activeSite = null;
   render();
 });
 
-/* --- Example chips --- */
+/* --- Demo chips --- */
 $('#examples').innerHTML = EXAMPLES.map((x, i) => `
   <button type="button" data-example="${i}" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-[12.5px] text-slate-600 hover:border-emerald-500 hover:text-emerald-800 active:scale-[0.98] transition">
-    <span class="font-semibold text-slate-800 whitespace-nowrap">Try example:</span><span class="min-w-0">“${x}”</span>
+    <span class="font-semibold text-slate-800 whitespace-nowrap">${x.lead}</span><span class="min-w-0">“${x.text}”</span>
   </button>`).join('');
 $('#examples').addEventListener('click', (e) => {
   const b = e.target.closest('[data-example]');
   if (!b) return;
-  input.value = EXAMPLES[Number(b.dataset.example)];
+  input.value = EXAMPLES[Number(b.dataset.example)].text;
   runSearch(input.value);
 });
 
@@ -911,11 +951,11 @@ function renderBar() {
       <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 pl-2.5 pr-1 py-0.5 text-[13px] text-slate-700">${esc(s.label)}
         <button type="button" data-unselect="${esc(s.id)}" class="h-5 w-5 grid place-items-center rounded-full hover:bg-slate-300 text-slate-500" aria-label="Remove ${esc(s.label)}">${x}</button>
       </span>`).join('')}
-    ${isDefault() ? '' : `<button type="button" data-reset class="ml-1 inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-0.5 text-[13px] font-medium text-slate-700 hover:border-slate-500 active:scale-[0.97] transition">Clear all ${x}</button>`}` : '';
+    ${isDefault() ? '' : `<button type="button" data-reset class="ml-1 text-[13px] font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">Clear all</button>`}` : '';
 }
 $('#selectionBar').addEventListener('click', (e) => {
   const u = e.target.closest('[data-unselect]');
-  if (u) { selection = selection.filter(s => s.id !== u.dataset.unselect); activeSite = null; render(); }
+  if (u) { selection = selection.filter(s => s.id !== u.dataset.unselect); render(); }
 });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-reset]')) resetToDefault(); });
 
@@ -960,21 +1000,30 @@ function resolve(entry) {
 }
 
 /* --- Claude's answer -> entries. The local rules double-check anything Claude accepts. --- */
-const ORG_KEYS = new Set(['sacred', 'closet', 'harvest', 'humane']);
+const AI_ORG = { sacred_heart: 'sacred', second_harvest: 'harvest', humane_society: 'humane' };
 function fromAI(x) {
   if (!x || typeof x.label !== 'string' || !x.label.trim()) return null;
   const label = x.label.trim().slice(0, 48);
   const reason = typeof x.reason === 'string' ? x.reason.slice(0, 220) : '';
   const local = analyze(label);
   const entry = { id: `ai:${norm(label)}`, label, q: label, ai: true };
-  if (x.status === 'accept' && ORG_KEYS.has(x.org)) {
+  const d = x.destination;
+  if (AI_ORG[d]) {
     if (local.status === 'reject') return { ...entry, ai: false };            // e.g. "opened cereal": the safety rule wins
-    const hot = local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[x.org].site;
-    return { ...entry, fixed: { kind: 'accept', options: [x.org], hot: !!hot, note: reason } };
+    let org = AI_ORG[d];
+    // Clothes go to the Clothes Closet entrance at the same Sacred Heart site
+    if (org === 'sacred' && local.status === 'accept' && local.dest === 'closet') org = 'closet';
+    const hot = local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[org].site;
+    return { ...entry, fixed: { kind: 'accept', options: [org], hot: !!hot, note: reason } };
   }
-  if (x.status === 'redirect' && Object.hasOwn(REDIRECTS, x.redirect_to)) return { ...entry, fixed: { kind: 'redirect', to: x.redirect_to, why: reason } };
-  if (x.status === 'reject') return { ...entry, fixed: { kind: 'reject', why: reason || 'Local pantries can’t accept this item.', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
-  if (x.status === 'unknown') return { ...entry, ai: false };                 // let the local rules try
+  if (d === 'habitat_restore' || d === 'goodwill_sv') {
+    if (local.status === 'reject') return { ...entry, ai: false };            // e.g. a broken chair
+    // ReStore items can also go to Goodwill; the optimizer picks whichever saves a stop or miles
+    const to = d === 'habitat_restore' ? 'restore' : (local.status === 'redirect' && REDIRECTS[local.item.to].places ? local.item.to : 'goodwill');
+    return { ...entry, fixed: { kind: 'redirect', to, why: reason } };
+  }
+  if (d === 'reject') return { ...entry, fixed: { kind: 'reject', why: reason || 'Local pantries can’t accept this item.', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
+  if (d === 'other' || d === 'unknown') return { ...entry, ai: false };     // the local rules know the right specialist drop-off
   return null;
 }
 
@@ -986,7 +1035,7 @@ async function runSearch(raw) {
   cancelSearch();
   const seq = searchSeq, ctrl = new AbortController();
   searchCtrl = ctrl;
-  source = 'search'; selection = []; lastAI = false; activeSite = null;   // typed search replaces any pills
+  source = 'search'; selection = []; lastAI = false;   // typed search replaces any pills
   pending = text;
   setBusy(true);
   render();
@@ -1016,7 +1065,7 @@ const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Type what
 setPlaceholder(); addEventListener('resize', setPlaceholder);
 
 /* =====================================================================
-   TRIP PLAN: items grouped by where they go
+   RESULT CARD: trip summary, numbered stops, then what stays home
    ===================================================================== */
 const HOW = {
   sacred: 'Pull into the donation alley off S. 1st St; volunteers help unload from your trunk.',
@@ -1024,105 +1073,67 @@ const HOW = {
   mixed: 'Use the S. 1st St donation alley; hand over clothes in tied bags, separate from food and supplies.',
   harvest: 'Follow the signs to the warehouse donation dock and ring the bell; staff bring a cart to your car.',
   humane: 'Park in the front lot; the donation bin is just left of the main entrance.',
+  restore: 'Bring furniture and appliances clean and in working order; staff at the donation area help with large items.',
+  goodwill: 'Pull up to the donation drop-off and an attendant will help unload; ask for a receipt for your taxes.',
 };
-function buildPlan(items) {
-  const stops = new Map();   // site -> { site, orgs:Set, items:[] }
-  const put = (org, it) => {
-    const site = ORGS[org].site;
-    if (!stops.has(site)) stops.set(site, { site, orgs: new Set(), items: [] });
-    const s = stops.get(site); s.orgs.add(org); s.items.push(it);
-  };
-  const accepted = items.filter(i => i.kind === 'accept');
-  accepted.filter(i => i.options.length === 1).forEach(i => put(i.options[0], i));
-  // Items two places accept: join a stop you're already making, otherwise go to the nearer one
-  accepted.filter(i => i.options.length > 1).forEach(i => {
-    const joined = i.options.find(o => stops.has(ORGS[o].site));
-    put(joined || [...i.options].sort((a, b) => estMiles(ORGS[a].site) - estMiles(ORGS[b].site))[0], i);
-  });
-  const resale = items.filter(i => i.kind === 'redirect' && REDIRECTS[i.to].places);
-  const other = new Map();
-  items.filter(i => i.kind === 'redirect' && !REDIRECTS[i.to].places).forEach(i => { if (!other.has(i.to)) other.set(i.to, []); other.get(i.to).push(i); });
-  return {
-    stops: [...stops.values()].sort((a, b) => estMiles(a.site) - estMiles(b.site)),
-    resale,
-    resalePlaces: ['restore', 'goodwill'].filter(p => resale.some(i => REDIRECTS[i.to].places.includes(p))).sort((a, b) => estMiles(a) - estMiles(b)),
-    other: [...other.entries()],
-    rejects: items.filter(i => i.kind === 'reject'),
-    unknown: items.filter(i => i.kind === 'unknown'),
-  };
-}
-
+const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
 const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${i.hot ? '<i data-lucide="flame" class="h-3 w-3 text-red-600"></i>' : ''}${esc(i.label)}</span>`;
-const routeBtn = (site) => `<button type="button" data-route="${site}" aria-pressed="false" class="inline-flex items-center gap-1.5 h-9 rounded-lg border px-3 text-[13px] font-semibold active:scale-[0.97] transition"><i data-lucide="route" class="h-3.5 w-3.5"></i><span>Show Route on Map</span></button>`;
-const gmapsBtn = (site) => `<a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(site))}" class="inline-flex items-center gap-1 h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>`;
 
-function stopCard(s, n) {
-  const orgs = [...s.orgs];
-  const org = orgs.includes('closet') ? 'closet' : orgs[0];          // the Clothes Closet closes earliest
-  const how = s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
-  const hot = s.items.some(i => i.hot);
+function bannerHtml(stops) {
+  const t = totals(stops), n = stops.length;
   return `
-    <article class="rounded-2xl border border-emerald-300 bg-white shadow-sm overflow-hidden">
-      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 bg-emerald-50 border-b border-emerald-200">
-        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-emerald-800"><span class="h-5 w-5 grid place-items-center rounded-full bg-emerald-700 text-white text-[11px]">${n}</span>Drop-off stop</p>
-        ${openBadge(ORGS[org])}
+    <section class="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 shadow-sm">
+      <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span class="text-[16px] font-semibold">🚗 <span id="tripTitle">Optimized ${n}-Stop Route</span></span>
+        <span id="tripTotals" class="text-[13.5px] text-slate-300">~${t.mi.toFixed(1)} mi total (~${t.min} min from ${esc(start.label)}) · estimate</span>
+      </p>
+      <p class="mt-1.5 text-[13px] text-slate-300 leading-relaxed">${esc(start.label)} → ${stops.map((s, i) => `<span class="text-white">Stop ${i + 1}: ${shortName(s.site)}</span>`).join(' → ')}</p>
+      <a target="_blank" rel="noopener" href="${fullTripUrl(stops)}" class="mt-3.5 inline-flex items-center gap-1.5 h-10 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">Open Full Route in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
+    </section>`;
+}
+function stopCard(s, i, stops) {
+  const partner = !!SITES[s.site].partner;
+  const orgs = [...s.orgs];
+  const org = orgs.includes('closet') ? 'closet' : orgs[0];               // the Clothes Closet closes earliest
+  const how = partner ? HOW[s.site] : s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
+  const hot = s.items.some(i2 => i2.hot);
+  const from = i ? sitePlace(stops[i - 1].site) : startPlace();
+  const tone = partner
+    ? { border: 'border-amber-300', head: 'bg-amber-50 border-amber-200 text-amber-800', num: 'bg-amber-600', tag: 'border-amber-200 bg-amber-50 text-amber-900', label: 'Take to Goodwill / ReStore' }
+    : { border: 'border-emerald-300', head: 'bg-emerald-50 border-emerald-200 text-emerald-800', num: 'bg-emerald-700', tag: 'border-emerald-200 bg-emerald-50 text-emerald-900', label: 'Drop-off' };
+  return `
+    <article class="rounded-2xl border ${tone.border} bg-white shadow-sm overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 border-b ${tone.head}">
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em]"><span class="h-5 w-5 grid place-items-center rounded-full ${tone.num} text-white text-[11px]">${i + 1}</span>Stop ${i + 1} · ${tone.label}</p>
+        ${siteStatus(s.site, partner ? null : org)}
       </div>
       <div class="p-4">
-        <h3 class="text-[17px] font-semibold leading-snug">${ORGS[s.site].name}</h3>
-        <p class="mt-0.5 text-[13px] text-slate-500">${ORGS[s.site].address.replace(/, CA \d+$/, '')} · <span data-dist="${s.site}">${distText(s.site)}</span></p>
-        <div class="mt-3 flex flex-wrap gap-1.5">${s.items.map(i => tag(i, 'border-emerald-200 bg-emerald-50 text-emerald-900')).join('')}</div>
+        <h3 class="text-[17px] font-semibold leading-snug">${siteName(s.site)}</h3>
+        <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')} · <span data-leg="${i}">~${s.leg.mi.toFixed(1)} mi · ~${s.leg.min} min from ${i ? shortName(stops[i - 1].site) : esc(start.label)}</span></p>
+        <div class="mt-3 flex flex-wrap gap-1.5">${s.items.map(it => tag(it, tone.tag)).join('')}</div>
         ${hot ? '<p class="mt-2 flex items-center gap-1.5 text-[12.5px] text-red-700"><i data-lucide="flame" class="h-3.5 w-3.5"></i>On this organization’s high-demand list right now</p>' : ''}
         <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">${how}</p>
-        <div class="mt-3.5 flex flex-wrap gap-2">${routeBtn(s.site)}${gmapsBtn(s.site)}</div>
-      </div>
-    </article>`;
-}
-function resaleCard(plan) {
-  const takes = (p) => plan.resale.filter(i => REDIRECTS[i.to].places.includes(p));
-  return `
-    <article class="rounded-2xl border border-amber-300 bg-white shadow-sm overflow-hidden">
-      <div class="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-200">
-        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-amber-800"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Take to Goodwill / ReStore</p>
-      </div>
-      <div class="p-4">
-        <div class="flex flex-wrap gap-1.5">${plan.resale.map(i => tag(i, 'border-amber-200 bg-amber-50 text-amber-900')).join('')}</div>
-        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">Food pantries have no space to store or test furniture, appliances or electronics, but these stores resell them if they’re clean and working.</p>
-        <div class="mt-3 space-y-3">
-          ${plan.resalePlaces.map(p => {
-            const t = takes(p), partial = t.length < plan.resale.length;
-            return `
-            <div class="rounded-xl border border-slate-200 p-3">
-              <p class="text-[15px] font-semibold leading-snug">${PARTNERS[p].name}</p>
-              <p class="mt-0.5 text-[13px] text-slate-500">${PARTNERS[p].address.replace(/, CA$/, '')} · <span data-dist="${p}">${distText(p)}</span></p>
-              ${partial ? `<p class="mt-1 text-[12.5px] text-slate-600">Takes: ${t.map(i => esc(i.label)).join(', ')}</p>` : ''}
-              <div class="mt-2.5 flex flex-wrap gap-2">${routeBtn(p)}${gmapsBtn(p)}</div>
-            </div>`;
-          }).join('')}
-        </div>
+        <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site), from)}" class="mt-3 inline-flex items-center gap-1 text-[13.5px] font-semibold ${partner ? 'text-amber-800 hover:text-amber-900' : 'text-emerald-700 hover:text-emerald-800'}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
       </div>
     </article>`;
 }
 function otherCard([to, list]) {
   const d = REDIRECTS[to];
   return `
-    <article class="rounded-2xl border border-amber-300 bg-white shadow-sm overflow-hidden">
-      <div class="px-4 py-2.5 bg-amber-50 border-b border-amber-200">
-        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-amber-800"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Other local drop-off</p>
-      </div>
-      <div class="p-4">
-        <div class="flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-amber-200 bg-amber-50 text-amber-900')).join('')}</div>
-        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">${esc(list[0].why)}</p>
-        <p class="mt-2 text-[14px] font-semibold">${d.name}</p>
-        <div class="mt-2.5"><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.query)}" class="inline-flex items-center gap-1 h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Find the nearest one in Google Maps<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
-      </div>
+    <article class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4">
+      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-600"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Needs a specialist drop-off</p>
+      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-slate-200 bg-slate-50 text-slate-800')).join('')}</div>
+      <p class="mt-2.5 text-[13.5px] text-slate-700 leading-relaxed">${esc(list[0].why)}</p>
+      <p class="mt-2 text-[14px] font-semibold">${d.name}</p>
+      <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.query)}" class="mt-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-slate-800 hover:text-slate-950">Find the nearest one<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
     </article>`;
 }
 function rejectCard(list) {
   return `
     <article class="rounded-2xl border border-red-300 bg-white shadow-sm overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-red-50 border-b border-red-200">
-        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-red-800"><i data-lucide="house" class="h-4 w-4"></i>Keep at home or recycle</p>
-        <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 text-[12px] font-semibold text-red-700"><i data-lucide="x" class="h-3 w-3"></i>Cannot Donate</span>
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-red-800"><i data-lucide="house" class="h-4 w-4"></i>Leave these at home</p>
+        <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 text-[12px] font-semibold text-red-700">✕ Cannot Donate</span>
       </div>
       <ul class="p-4 space-y-3.5">
         ${list.map(i => `
@@ -1143,17 +1154,17 @@ function unknownCard(list) {
     </article>`;
 }
 
-function renderPlan(plan, animate) {
+function renderResults(items, animate) {
   const left = $('#resultLeft');
   if (pending) {
     left.innerHTML = `
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5" role="status">
         <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>
         <div class="mt-4 space-y-3 animate-pulse">
+          <div class="h-16 rounded-xl bg-slate-200"></div>
           <div class="h-4 w-2/5 rounded bg-slate-200"></div>
           <div class="flex gap-2"><div class="h-7 w-24 rounded-full bg-slate-200"></div><div class="h-7 w-28 rounded-full bg-slate-200"></div><div class="h-7 w-20 rounded-full bg-slate-200"></div></div>
           <div class="h-3.5 w-11/12 rounded bg-slate-200"></div>
-          <div class="h-9 w-56 rounded-lg bg-slate-200"></div>
         </div>
       </div>`;
     icons(); return;
@@ -1167,25 +1178,23 @@ function renderPlan(plan, animate) {
       </div>`;
     icons(); return;
   }
-  const stopCount = plan.stops.length + (plan.resale.length ? 1 : 0) + plan.other.length;
+  const other = new Map();
+  items.filter(i => i.kind === 'redirect' && !REDIRECTS[i.to].places).forEach(i => { if (!other.has(i.to)) other.set(i.to, []); other.get(i.to).push(i); });
+  const rejects = items.filter(i => i.kind === 'reject'), unknown = items.filter(i => i.kind === 'unknown');
   const n = selection.length;
-  const summary = `${n} item${n === 1 ? '' : 's'} · ${stopCount ? `${stopCount} stop${stopCount === 1 ? '' : 's'}` : 'nothing to drop off'}`;
   left.innerHTML = `
-    <div class="${animate ? 'fade-up' : ''}">
+    <div class="${animate ? 'fade-up' : ''} space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Your trip plan · ${summary}</p>
+        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">${n} item${n === 1 ? '' : 's'} · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>
         ${lastAI && source === 'search' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
       </div>
-      <div class="mt-2.5 space-y-3">
-        ${plan.stops.map((s, i) => stopCard(s, i + 1)).join('')}
-        ${plan.resale.length ? resaleCard(plan) : ''}
-        ${plan.other.map(otherCard).join('')}
-        ${plan.rejects.length ? rejectCard(plan.rejects) : ''}
-        ${plan.unknown.length ? unknownCard(plan.unknown) : ''}
-      </div>
+      ${trip.stops.length ? bannerHtml(trip.stops) : ''}
+      ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
+      ${[...other.entries()].map(otherCard).join('')}
+      ${unknown.length ? unknownCard(unknown) : ''}
+      ${rejects.length ? rejectCard(rejects) : ''}
     </div>`;
   icons();
-  markRouteButtons();
 }
 
 /* --- One render for everything on Tab 1 --- */
@@ -1197,15 +1206,10 @@ function render(animate = true) {
     b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
   });
   renderBar();
-  const plan = buildPlan(selection.map(resolve));
-  planSites = [...plan.stops.map(s => s.site), ...plan.resalePlaces];
-  // Keep the route the donor picked if that stop is still in the plan; otherwise route to the first stop
-  if (pending) activeSite = null;
-  else if (!planSites.includes(activeSite)) activeSite = planSites[0] || null;
-  renderPlan(plan, animate);
-  styleMarkers();
-  drawRoute();
-  prefetchDistances();
+  const items = pending ? [] : selection.map(resolve);
+  trip = { stops: optimizeTrip(items), real: false };
+  renderResults(items, animate);
+  routeTrip();
 }
 
 /* =====================================================================
@@ -1272,7 +1276,7 @@ function renderNeedCard() {
         <div class="flex items-start gap-2">
           <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
           <div><p class="text-slate-800">${o.address}</p>
-            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site))}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
+            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site), startPlace())}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
         </div>
         <div class="flex items-start gap-2">
           <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
@@ -1292,7 +1296,6 @@ function planNeed(label, org, note, hot) {
   source = 'search'; lastAI = false;
   input.value = label;
   selection = [{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }];
-  activeSite = ORGS[org].site;
   setTab('give');
   render();
   scrollTo({ top: 0, behavior: 'smooth' });
