@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>GiveLocal South Bay</title>
+<meta name="description" content="Find where to donate items in San Jose, Campbell and Milpitas, and see what local pantries need most." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23047857'/%3E%3Cpath d='M16 23s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 23 14c0 4.8-7 9-7 9z' fill='white'/%3E%3C/svg%3E" />
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'] },
+        colors: { ink: '#0F172A' },
+      },
+    },
+  };
+</script>
+<style>
+  /* Deliberately a single light look: every color below is explicit. */
+  :root { color-scheme: light; --paper: #FAF9F6; --ink: #0F172A; --water: #DCE9F2; --land: #F3F2EC; --road: #E2C99A; }
+  body { background: var(--paper); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: #fff; }
+  .topbar { top: env(safe-area-inset-top, 0px); }
+  [data-lucide], .lucide { stroke-width: 1.75; }
+  @keyframes fadeUp { from { transform: translateY(6px); opacity: 0 } to { transform: none; opacity: 1 } }
+  .fade-up { animation: fadeUp 240ms ease-out; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .spin { animation: spin 0.9s linear infinite; }
+  @media (prefers-reduced-motion: reduce) { .fade-up, .spin { animation: none; } }
+  #map svg { display: block; width: 100%; height: 100%; }
+  :focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+
+
+  <!-- Top bar -->
+  <nav class="topbar sticky z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center gap-3">
+      <span class="h-8 w-8 rounded-lg bg-emerald-700 grid place-items-center shrink-0">
+        <i data-lucide="hand-heart" class="h-4 w-4 text-white"></i>
+      </span>
+      <span class="font-semibold tracking-tight whitespace-nowrap text-[15px] sm:text-base">GiveLocal South Bay</span>
+      <span class="ml-auto sm:ml-0 inline-flex items-center rounded-full bg-slate-100 text-slate-500 text-[11px] sm:text-xs px-2.5 py-1 whitespace-nowrap"><span class="sm:hidden">SJ · Campbell · Milpitas</span><span class="hidden sm:inline">San Jose · Campbell · Milpitas</span></span>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-6 pt-14 sm:pt-16 pb-20">
+
+    <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">How would you like to donate today?</h1>
+
+    <!-- Tabs -->
+    <div role="tablist" class="mt-8 grid grid-cols-2 gap-3 p-1.5 bg-slate-200/70 rounded-2xl mb-8">
+      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 transition">
+        <span class="block text-[15px] sm:text-base font-semibold">1. I have items to donate</span>
+        <span class="block mt-0.5 text-[13px] text-slate-500">Find where they go</span>
+      </button>
+      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 transition">
+        <span class="block text-[15px] sm:text-base font-semibold">2. See what local pantries need</span>
+        <span class="block mt-0.5 text-[13px] text-slate-500">Published high-demand needs</span>
+      </button>
+    </div>
+
+    <!-- TAB 1 -->
+    <section id="panel-give" role="tabpanel" aria-labelledby="tab-give">
+      <div id="combo" class="relative">
+        <form id="searchForm" autocomplete="off">
+          <label for="searchInput" class="sr-only">Search 80+ items</label>
+          <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm px-5 h-16 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
+            <i data-lucide="search" class="h-5 w-5 text-slate-400 shrink-0"></i>
+            <input id="searchInput" type="text" role="combobox" aria-expanded="false" aria-controls="suggestList" aria-autocomplete="list"
+              placeholder="Search 80+ items, or list a few..."
+              class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
+            <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60 transition">
+              <span id="askAIIcon" class="grid place-items-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span id="askAILabel">Ask AI</span>
+            </button>
+          </div>
+        </form>
+        <div id="suggestBox" class="hidden absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto z-50">
+          <p id="suggestHead" class="px-4 pt-2.5 pb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400"></p>
+          <ul id="suggestList" role="listbox" aria-label="Matching items" class="pb-1.5"></ul>
+        </div>
+      </div>
+
+      <p class="mt-5 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
+      <div id="quickPills" class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+      <div id="selectionBar" class="mt-4 min-h-[28px] flex flex-wrap items-center gap-1.5 text-sm"></div>
+
+      <div class="mt-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
+        <div id="resultLeft" class="md:col-span-7 p-6"></div>
+        <div class="md:col-span-5 bg-slate-100 min-h-[260px] relative isolate border-t md:border-t-0 md:border-l border-slate-200">
+          <div id="map" class="absolute inset-0"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2 -->
+    <section id="panel-needs" role="tabpanel" aria-labelledby="tab-needs" class="hidden">
+      <div class="flex flex-wrap md:flex-nowrap items-center justify-between gap-2">
+        <div id="orgBtns" class="flex flex-wrap md:flex-nowrap items-center gap-1.5 min-w-0"></div>
+        <button id="staffBtn" class="shrink-0 inline-flex items-center gap-1 px-1 py-2 text-xs font-medium text-slate-400 hover:text-slate-700 transition whitespace-nowrap">
+          <i data-lucide="plus" class="h-3.5 w-3.5"></i>Staff Demo
+        </button>
+      </div>
+      <div id="needCard" class="mt-6"></div>
+    </section>
+
+    <footer class="mt-20 text-xs text-slate-400 leading-relaxed">
+      Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go. Map is a simplified sketch; use the directions links for exact routes.
+      <a href="#" id="resetDemo" class="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600">Reset demo data</a>
+    </footer>
+  </main>
+
+  <!-- Staff Demo modal -->
+  <div id="staffModal" class="fixed inset-0 z-[60] hidden overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staffTitle">
+    <div data-close class="fixed inset-0 bg-slate-900/30"></div>
+    <div class="relative mx-auto my-12 w-[calc(100%-2rem)] max-w-xl bg-white rounded-2xl border border-slate-200 shadow-lg fade-up">
+      <div class="flex items-start justify-between px-6 pt-6">
+        <div>
+          <p class="text-xs font-medium text-amber-700">Staff Demo</p>
+          <h3 id="staffTitle" class="mt-0.5 text-lg font-semibold">Edit published priority needs</h3>
+          <p class="mt-1 text-[13px] text-slate-500">Shows how a coordinator could update what donors see. Saved in this browser only.</p>
+        </div>
+        <button data-close class="h-8 w-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Close">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <form id="staffForm" class="px-6 py-5">
+        <label class="block">
+          <span class="text-sm text-slate-600">Organization</span>
+          <select id="fOrg" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm bg-white focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
+        </label>
+        <div id="fItems" class="mt-5 space-y-4"></div>
+        <p id="fError" class="hidden mt-3 text-sm text-red-600"></p>
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button" data-close class="h-10 px-4 rounded-xl border border-slate-200 text-sm font-medium hover:bg-slate-50">Cancel</button>
+          <button class="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+
+<script>
+/* =====================================================================
+   LOCATIONS
+   ===================================================================== */
+// Coordinates from OpenStreetMap. The Clothes Closet shares Sacred Heart's site.
+const SITES = {
+  sacred:  { lat: 37.31676, lng: -121.87399, label: 'Sacred Heart' },
+  harvest: { lat: 37.41367, lng: -121.95190, label: 'Second Harvest' },
+  humane:  { lat: 37.42175, lng: -121.88758, label: 'Humane Society SV', dir: 'below' },
+  // Other local drop-offs for furniture, appliances and electronics
+  restore: { lat: 37.35986, lng: -121.86785, label: 'Habitat ReStore', partner: true, dir: 'right' },
+  goodwill:{ lat: 37.35954, lng: -121.89829, label: 'Goodwill SV', partner: true, dir: 'left' },
+};
+
+// days: 0 = Sun … 6 = Sat
+const ORGS = {
+  sacred:  { site: 'sacred',  name: 'Sacred Heart Community Service', address: '1381 S. 1st St, San Jose, CA 95110', days: [1,2,3,4,5], open: '9 AM', close: '4 PM' },
+  closet:  { site: 'sacred',  name: 'Sacred Heart Clothes Closet', address: '1381 S. 1st St, San Jose, CA 95110', days: [1,2,3,4,5], open: '9 AM', close: '3:30 PM' },
+  harvest: { site: 'harvest', name: 'Second Harvest of Silicon Valley', address: '4001 N. 1st St, San Jose, CA 95134', days: [1,2,3,4,5], open: '8 AM', close: '4 PM' },
+  humane:  { site: 'humane',  name: 'Humane Society Silicon Valley', address: '901 Ames Ave, Milpitas, CA 95035', days: [0,1,2,3,4,5,6], open: '11 AM', close: '6 PM' },
+};
+const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const toMin = (t) => { const m = /(\d+)(?::(\d+))?\s*(AM|PM)/i.exec(t); return ((+m[1] % 12) + (m[3].toUpperCase() === 'PM' ? 12 : 0)) * 60 + (+m[2] || 0); };
+function todayHours(o) {
+  const now = new Date(), d = now.getDay(), mins = now.getHours() * 60 + now.getMinutes();
+  if (o.days.includes(d)) {
+    if (mins < toMin(o.open)) return { open: false, text: `Opens today at ${o.open}` };
+    if (mins < toMin(o.close)) return { open: true, text: `Open now · until ${o.close}` };
+  }
+  let n = 1; while (!o.days.includes((d + n) % 7)) n++;
+  return { open: false, text: `Closed now · opens ${n === 1 ? 'tomorrow' : DAY[(d + n) % 7]} at ${o.open}` };
+}
+const hoursLine = (o) => `${o.days.length === 7 ? 'Daily' : 'Mon–Fri'}, ${o.open} – ${o.close}`;
+
+/* =====================================================================
+   TAB 2 DATA: published priority needs per organization (editable in Staff Demo)
+   ===================================================================== */
+const NEED_ORGS = ['sacred', 'harvest', 'humane'];
+const SEED_NEEDS = {
+  sacred: {
+    items: [
+      { program: 'Infant & Family', title: 'Diapers & Baby Wipes',          spec: 'Sizes 4, 5 & 6 unopened packs and unscented wipes' },
+      { program: 'Food Pantry',     title: 'Cooking Oil & Canned Protein',  spec: 'Plastic oil bottles; pop-top tuna, chicken or beans' },
+      { program: 'Clothes Closet',  title: 'Warm Socks & Kids Coats',       spec: 'New adult socks in the package; clean kids coats 4–14' },
+    ],
+    staples: ['Peanut butter in plastic jars', 'Dry rice & beans', 'Canned fruit', 'Full-size toiletries', 'Clean paper grocery bags'],
+    doNot: ['Glass jars (breakage risk)', 'Opened or expired food', 'Rusty or unlabeled cans', 'Used undergarments'],
+    arrival: 'Pull into the donation alley off S. 1st St; volunteers help unload from your trunk.',
+  },
+  harvest: {
+    items: [
+      { program: 'Food Pantry',      title: 'Shelf-stable Milk',          spec: 'Unopened boxed (UHT) milk, 2+ months before the date' },
+      { program: 'Senior Nutrition', title: 'Pop-top Tuna & Chicken',     spec: 'Packed in water, with pull-tab lids' },
+      { program: 'Family Groceries', title: 'Peanut Butter & Brown Rice', spec: 'Plastic jars; rice in 1–2 lb bags' },
+    ],
+    staples: ['Low-sodium canned vegetables', 'Pasta', 'Canned fruit in juice', 'Oatmeal', 'Low-sugar cereal'],
+    doNot: ['Home-canned or home-cooked food', 'Glass jars', 'Opened or expired items', 'Perishables without refrigeration'],
+    arrival: 'Follow the signs to the warehouse donation dock and ring the bell; staff will bring a cart to your car.',
+  },
+  humane: {
+    items: [
+      { program: 'Kitten Nursery', title: 'Kitten Wet Food (Paté)',        spec: 'Paté-style cans or pouches, unopened' },
+      { program: 'Shelter Care',   title: 'Unscented Clumping Litter',     spec: 'Unscented clay litter in jugs or bags' },
+      { program: 'Kennel Care',    title: 'Bath Towels & Fleece Blankets', spec: 'Used is fine if washed, with no holes' },
+    ],
+    staples: ['Dry dog & cat food (unopened)', 'Puppy pads', 'Paper towels', 'Bleach', 'Sturdy rubber chew toys'],
+    doNot: ['Opened food bags', 'Feather or down bedding', 'Pillows', 'Medications', 'Damaged crates'],
+    arrival: 'Park in the front lot; the donation bin is just left of the main entrance. Large crates go to the front desk.',
+  },
+};
+let needs = JSON.parse(JSON.stringify(SEED_NEEDS));
+const SEED_UPDATED = { sacred: Date.now() - 2 * 3600e3, harvest: Date.now() - 5 * 3600e3, humane: Date.now() - 26 * 3600e3 };
+let updated = { ...SEED_UPDATED };
+let selectedOrg = 'sacred';
+
+/* =====================================================================
+   SAVED IN THIS BROWSER (Staff Demo edits only)
+   ===================================================================== */
+const STORE_KEY = 'givelocal-southbay-demo-v8';
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ items: Object.fromEntries(NEED_ORGS.map(k => [k, needs[k].items])), updated })); } catch (_) {}
+}
+function loadState() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!data || !data.items) return;
+    const str = (v) => typeof v === 'string';
+    NEED_ORGS.forEach(k => {
+      const items = data.items[k];
+      if (Array.isArray(items) && items.length === 3 && items.every(i => i && str(i.program) && str(i.title) && str(i.spec))) needs[k].items = items;
+      if (data.updated && Number.isFinite(data.updated[k])) updated[k] = data.updated[k];
+    });
+  } catch (_) {}
+}
+
+/* =====================================================================
+   SMART RULES ENGINE (Tab 1)
+   A client-side keyword + condition parser: no API keys, works offline.
+   ===================================================================== */
+
+// Where to send things food pantries can't take. Links search for the nearest location.
+const PARTNERS = {
+  restore:  { name: 'Habitat for Humanity ReStore', address: '1608 Las Plumas Ave, San Jose, CA' },
+  goodwill: { name: 'Goodwill of Silicon Valley', address: '1080 N 7th St, San Jose, CA' },
+};
+// places = partner pins shown on the map for this kind of item
+const REDIRECTS = {
+  goodwill: { name: 'Goodwill of Silicon Valley', query: 'Goodwill of Silicon Valley donation center', places: ['goodwill'] },
+  restore:  { name: 'Habitat for Humanity ReStore (San Jose) or Goodwill of Silicon Valley', query: 'Habitat for Humanity ReStore near San Jose', places: ['restore', 'goodwill'] },
+  ewaste:   { name: 'Goodwill of Silicon Valley or a certified e-waste drop-off', query: 'electronics recycling drop off San Jose', places: ['goodwill'] },
+  hhw:      { name: 'Santa Clara County Household Hazardous Waste program (free, by appointment)', query: 'Santa Clara County Household Hazardous Waste' },
+  takeback: { name: 'A pharmacy medicine take-back kiosk', query: 'medication take back kiosk near San Jose' },
+  mattress: { name: 'Bye Bye Mattress recycling or San Jose bulky-item pickup', query: 'Bye Bye Mattress drop off San Jose' },
+  medloan:  { name: 'A medical equipment lending closet', query: 'medical equipment loan closet San Jose' },
+  bike:     { name: 'A community bike shop or Goodwill of Silicon Valley', query: 'community bike shop donation San Jose', places: ['goodwill'] },
+  carseat:  { name: 'A car seat recycling event or retailer trade-in', query: 'car seat recycling San Jose' },
+};
+
+// Item knowledge base. A = accepted, R = redirect elsewhere, X = never accepted.
+const A = (name, kw, dest, g, note, extra = {}) => ({ kind: 'accept', name, kw, dest, g, note, ...extra });
+// rtype is the plain category name ("Furniture"); HOUSEHOLD marks the "Household Furniture & Appliances" rule
+const HOUSEHOLD = 'Household Furniture & Appliances (Redirect)';
+const R = (name, kw, to, why, rtype, group = null) => ({ kind: 'redirect', name, kw, to, why, rtype, group, g: 'other' });
+const X = (name, kw, why, instead) => ({ kind: 'reject', name, kw, why, instead, g: 'other' });
+const H = { alt: ['sacred'] };   // pantry food Second Harvest takes, Sacred Heart also takes
+const S = { alt: ['harvest'] };  // pantry food Sacred Heart takes, Second Harvest also takes
+
+const ITEMS = [
+  // --- Food pantry ---
+  A('Canned Tuna', 'tuna|canned tuna|can of tuna', 'harvest', 'food', 'A top protein request. Pop-top cans packed in water are ideal.', H),
+  A('Canned Chicken', 'canned chicken|chicken breast can|can of chicken', 'harvest', 'food', 'High-protein and easy for seniors. Pop-top cans preferred.', H),
+  A('Beans', 'beans|black beans|pinto beans|kidney beans|garbanzo|chickpeas|refried beans|canned beans|lentils|dry beans', 'harvest', 'food', 'A pantry staple, canned or dry, any variety, unopened.', H),
+  A('Canned Soup & Chili', 'soup|chili|stew|canned soup', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
+  A('Canned Vegetables', 'canned vegetables|canned veggies|canned corn|corn|green beans|peas|canned tomatoes|tomato sauce', 'harvest', 'food', 'Low-sodium canned vegetables are especially welcome.', H),
+  A('Canned Fruit', 'canned fruit|fruit cups|fruit cup|applesauce|canned peaches|pineapple|mandarin oranges', 'harvest', 'food', 'Fruit packed in juice is preferred over heavy syrup.', H),
+  A('Canned Meat & Fish', 'spam|canned meat|vienna sausage|corned beef|canned salmon|sardines', 'harvest', 'food', 'Shelf-stable proteins are always in demand.', H),
+  A('Peanut Butter', 'peanut butter|almond butter|nut butter|sunflower butter', 'harvest', 'food', 'One of the most-requested proteins. Plastic jars only.', H),
+  A('Cooking Oil', 'cooking oil|vegetable oil|olive oil|canola oil|oil', 'sacred', 'food', 'Constantly in short supply. Factory-sealed plastic bottles.', S),
+  A('Rice', 'rice|brown rice|white rice|jasmine rice', 'harvest', 'food', 'Rice in 1–2 lb bags is easiest for families to carry home.', H),
+  A('Pasta & Noodles', 'pasta|spaghetti|noodles|macaroni|mac and cheese|ramen|penne', 'harvest', 'food', 'Any unopened pasta, noodles or boxed mac and cheese.', H),
+  A('Oats & Oatmeal', 'oats|oatmeal|rolled oats|instant oatmeal|grits', 'harvest', 'food', 'A filling breakfast staple, in unopened canisters or packets.', H),
+  A('Cereal', 'cereal|granola|cheerios|corn flakes|breakfast cereal', 'harvest', 'food', 'Unopened boxes, and low-sugar cereals are preferred.', H),
+  A('Fresh Produce', 'produce|vegetables|veggies|fresh fruit|fruit|lettuce|carrots|potatoes|onions|tomatoes|apples|bananas|avocados|squash|zucchini', 'harvest', 'food', 'Welcome when it\'s clean and dropped off early in the day.', H),
+  A('Backyard Fruit', 'lemons|lemon|oranges|orange|persimmons|figs|plums|backyard fruit|tree fruit|citrus|grapefruit|loquats', 'harvest', 'food', 'Backyard harvests are welcome! Rinse, remove bruised fruit, and bring it in boxes.', H),
+  A('Baby Formula', 'formula|baby formula|infant formula|similac|enfamil', 'sacred', 'baby', 'Must be unopened and in date. Formula is one of the most urgent infant needs.'),
+  A('Baby Food', 'baby food|baby cereal|puree|purees|baby food pouches', 'sacred', 'baby', 'Unopened jars or pouches, in date.'),
+  A('Spices & Seasonings', 'spices|spice|seasoning|seasonings|salt|pepper|herbs|bouillon', 'sacred', 'food', 'Sealed spices help families cook from basic staples.', S),
+  A('Shelf-stable Milk', 'shelf stable milk|boxed milk|uht milk|powdered milk|evaporated milk|condensed milk|almond milk|oat milk|soy milk|milk', 'harvest', 'food', 'Unopened boxed or powdered milk is a top request.', H),
+  A('Egg Cartons', 'egg carton|egg cartons|empty egg cartons|egg crate', 'sacred', 'gear', 'Clean 12-count cartons are reused to repack bulk eggs for families!'),
+  A('Fresh Eggs', 'eggs|egg|dozen eggs', 'sacred', 'food', 'Store-bought sealed eggs are welcome. Keep them cold and bring them early.'),
+  A('Flour & Baking Staples', 'flour|sugar|baking mix|pancake mix|cornmeal|masa|cake mix', 'harvest', 'food', 'Sealed baking staples are welcome.', H),
+  A('Crackers & Snacks', 'crackers|snacks|chips|pretzels|granola bars|trail mix|nuts|dried fruit|raisins', 'harvest', 'food', 'Sealed snacks are great for kids\' school lunches.', H),
+  A('Pasta Sauce & Salsa', 'pasta sauce|marinara|salsa|spaghetti sauce', 'harvest', 'food', 'Welcome sealed, and cans or plastic jars travel best.', H),
+  A('Coffee & Tea', 'coffee|tea|hot chocolate|cocoa', 'harvest', 'food', 'Sealed coffee and tea are a small comfort many families miss.', H),
+  A('Bread & Tortillas', 'bread|tortillas|tortilla|bagels|buns|pita', 'sacred', 'food', 'Store-bought bread is welcome the same day. Bring it early.'),
+  A('Jam, Honey & Syrup', 'jam|jelly|honey|syrup|maple syrup', 'harvest', 'food', 'Welcome sealed, and plastic squeeze bottles are safest.', H),
+
+  // --- Clothes Closet & family needs (Sacred Heart) ---
+  A('Coats & Jackets', 'coat|coats|winter coat|jacket|jackets|parka|raincoat|puffer|windbreaker', 'closet', 'cloth', 'Warm coats are needed most from November through March. Clean, with working zippers.'),
+  A('Hoodies & Sweaters', 'hoodie|hoodies|sweatshirt|sweater|sweaters|fleece jacket|cardigan', 'closet', 'cloth', 'Clean, gently used layers are always welcome.'),
+  A('Pants & Jeans', 'pants|jeans|trousers|slacks|shorts|leggings|sweatpants|work pants', 'closet', 'cloth', 'Jeans and work pants, especially men\'s sizes, move fastest.'),
+  A('Shirts', 'shirt|shirts|t shirt|t shirts|tshirt|tee|blouse|polo|button down|tops', 'closet', 'cloth', 'Clean, gently used shirts in all sizes.'),
+  A('Shoes', 'shoes|shoe|sneakers|boots|sandals|work boots|heels|cleats', 'closet', 'cloth', 'Gently worn shoes with tread left. Tie or band each pair together.'),
+  A('New Socks', 'socks|sock', 'closet', 'new', 'Socks are the most requested clothing item at shelters, and they must be brand new.'),
+  A('New Underwear', 'underwear|boxers|briefs|bras|bra|undershirts|panties', 'closet', 'new', 'Must be brand new in the package for hygiene reasons.'),
+  A('Dress & Interview Clothes', 'suit|suits|dress|dresses|blazer|tie|ties|interview clothes|dress shirt', 'closet', 'cloth', 'Interview-ready clothes help neighbors land jobs.'),
+  A('Baby Clothes', 'baby clothes|onesies|onesie|infant clothes|toddler clothes|kids clothes|children clothes', 'closet', 'cloth', 'Clean, gently used baby and kids\' clothes in all sizes.'),
+  A('Hats, Gloves & Scarves', 'gloves|beanie|beanies|scarf|scarves|hat|hats|mittens|winter hat', 'closet', 'cloth', 'Warm accessories are easy to pack and always needed in winter.'),
+  A('Sleeping Bags', 'sleeping bag|sleeping bags', 'closet', 'cloth', 'Critical for unhoused neighbors in winter. Clean, with working zippers.'),
+  A('Blankets & Comforters', 'blanket|blankets|comforter|comforters|quilt|throw blanket', 'closet', 'cloth', 'Warm, clean blankets go out quickly on cold weeks.'),
+  A('Diapers', 'diapers|diaper|pull ups|pullups|training pants', 'sacred', 'baby', 'Diapers are a top need, especially sizes 4–6.',
+    { allow: { opened: 'Opened packs are welcome if the diapers are clean. Tape the pack shut and write the size on it.' } }),
+  A('Baby Wipes', 'wipes|baby wipes|wet wipes', 'sacred', 'baby', 'Sealed packs, fragrance-free preferred.'),
+  A('Strollers', 'stroller|strollers|pram|jogging stroller', 'sacred', 'gear', 'Clean strollers with working brakes and buckles help families get to appointments.'),
+  A('Backpacks', 'backpack|backpacks|bookbag|school bag|book bag', 'sacred', 'gear', 'Sturdy backpacks are in high demand in July–August and January.'),
+  A('School Supplies', 'school supplies|notebooks|notebook|pencils|pencil|pens|crayons|markers|binders|folders|glue sticks|calculator|rulers', 'sacred', 'gear', 'New school supplies help kids start the year ready to learn.'),
+  A('Children\'s Books', 'books|book|childrens books|kids books|picture books|board books', 'sacred', 'gear', 'Clean children\'s and bilingual books are favorites.'),
+  A('Toiletries', 'toothpaste|toothbrush|toothbrushes|shampoo|conditioner|soap|body wash|deodorant|lotion|toiletries|razors|hotel soap|travel size', 'sacred', 'hygiene', 'Full-size hygiene items are a constant need and rarely donated.'),
+  A('Menstrual Products', 'pads|tampons|menstrual|period products|feminine hygiene|panty liners', 'sacred', 'hygiene', 'A top request that\'s rarely donated. Sealed boxes only.'),
+  A('Kids\' Toys', 'toy|toys|lego|legos|board game|board games|puzzle|puzzles|doll|dolls|stuffed animal|stuffed animals', 'sacred', 'gear', 'New or like-new toys are welcome, especially before the holidays.'),
+  A('Grocery Bags', 'grocery bags|paper bags|reusable bags|tote bags|shopping bags|paper grocery bags', 'sacred', 'gear', 'Clean paper and reusable bags help families carry groceries home.'),
+
+  // --- Animal shelter (Humane Society Silicon Valley) ---
+  A('Dog Food', 'dog food|puppy food|dog kibble', 'humane', 'petfood', 'Unopened bags of dry or canned dog food.'),
+  A('Cat Food', 'cat food|kitten food|cat kibble', 'humane', 'petfood', 'Kitten paté is especially needed during kitten season.'),
+  A('Pet Kibble', 'kibble|dry pet food|pet food', 'humane', 'petfood', 'Unopened bags only. Check the seams for tears.'),
+  A('Wet Pet Food', 'wet food|canned dog food|canned cat food|wet cat food|wet dog food|pet food pouches', 'humane', 'petfood', 'Unopened cans and pouches are used every day.'),
+  A('Bath Towels', 'bath towels|bath towel|beach towels|beach towel|towels|towel|old towels|dog towels', 'humane', 'linen', 'Old towels make perfect kennel bedding. Worn is fine; just wash them first.'),
+  A('Hand Towels & Washcloths', 'hand towels|hand towel|washcloths|washcloth|wash cloths|dish towels', 'humane', 'linen', 'Small towels are used to clean and dry animals all day long.'),
+  A('Fleece Blankets', 'fleece blankets|fleece blanket|fleece throw|fleece', 'humane', 'linen', 'Fleece is the favorite because it washes well and doesn\'t unravel.'),
+  A('Bed Sheets', 'sheets|bed sheets|pillowcases|pillowcase|duvet cover', 'humane', 'linen', 'Flat sheets and pillowcases make easy kennel bedding.'),
+  A('Dog Crates', 'crate|crates|dog crate|kennel|wire crate|dog kennel', 'humane', 'petgear', 'Clean crates with all latches and trays.'),
+  A('Pet Carriers', 'carrier|carriers|cat carrier|pet carrier', 'humane', 'petgear', 'Carriers help send adopted pets home safely.'),
+  A('Leashes & Collars', 'leash|leashes|collar|collars|harness|harnesses', 'humane', 'petgear', 'Every adopted dog goes home on a leash, and gently used is fine.'),
+  A('Pet Bowls', 'pet bowls|dog bowl|dog bowls|cat bowl|cat bowls|stainless steel bowls|stainless bowls|bowls', 'humane', 'petgear', 'Stainless steel bowls are preferred because they sanitize easily.'),
+  A('Cat Litter', 'litter|cat litter|kitty litter|clumping litter', 'humane', 'petfood', 'Unscented clumping litter is used most.'),
+  A('Pet Toys', 'dog toy|dog toys|cat toy|cat toys|pet toy|pet toys|chew toy|chew toys|kong|tennis balls|rope toy', 'humane', 'pettoy', 'Durable rubber toys and tennis balls are great. No plush toys with stuffing.'),
+  A('Pet Beds', 'pet bed|pet beds|dog bed|dog beds|cat bed|cat beds', 'humane', 'petgear', 'Clean pet beds with washable covers.'),
+  A('Puppy Pads', 'puppy pads|pee pads|training pads', 'humane', 'petfood', 'Unopened packs are used every day in the puppy rooms.'),
+  A('Newspaper', 'newspaper|newspapers|shredded paper', 'humane', 'gear', 'Clean newspaper lines kennels and litter areas.'),
+
+  // --- Smart redirects (food pantries can't take these) ---
+  R('Mattress & Bed', 'mattress|mattresses|box spring|futon|bed|beds|bed frame|headboard', 'mattress',
+    'Food banks and Sacred Heart\'s clothes closet can\'t store or sanitize beds, and health rules bar used bedding this size.', 'Furniture', HOUSEHOLD),
+  R('Couch / Sofa', 'couch|couches|sofa|sofas|loveseat|sectional|recliner|armchair|futon couch', 'restore',
+    'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
+  R('Furniture', 'furniture|table|tables|dining table|coffee table|dresser|dressers|desk|desks|bookshelf|bookcase|chair|chairs|office chair|stool|nightstand|cabinet|lamp|lamps|floor lamp|ottoman', 'restore',
+    'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
+  R('Microwave', 'microwave|microwaves', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
+  R('Toaster', 'toaster|toasters|toaster oven|air fryer', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
+  R('Small Appliances', 'blender|blenders|coffee maker|kettle|rice cooker|instant pot|slow cooker|crockpot|mixer|vacuum|fan|space heater|heater|appliance|appliances|iron', 'goodwill',
+    'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
+  R('TV', 'tv|tvs|television|televisions', 'ewaste', 'Food pantries can\'t test or recycle electronics.', 'Electronics', HOUSEHOLD),
+  R('Computers & Phones', 'computer|computers|laptop|laptops|desktop|monitor|monitors|tablet|ipad|phone|phones|cell phone|printer|printers|keyboard|electronics|cables|chargers', 'ewaste',
+    'Devices need data wiping and testing that food pantries can\'t do.', 'Electronics', HOUSEHOLD),
+  R('Bicycle', 'bike|bikes|bicycle|bicycles|scooter|tricycle', 'bike', 'Food pantries have no room or mechanics to repair and store bikes.', 'Bikes', HOUSEHOLD),
+  R('Mobility Equipment', 'crutches|wheelchair|walker|cane|shower chair|knee scooter|medical equipment', 'medloan', 'Medical equipment needs checking and fitting, and loan closets get it to the people who need it.', 'Medical Equipment'),
+  R('Medicine', 'medicine|medicines|medication|medications|prescription|prescriptions|pills|antibiotics|insulin|inhaler|vitamins|tylenol|advil|ibuprofen', 'takeback', 'Pantries and shelters can\'t legally accept or hand out medicine, even sealed.', 'Medicine'),
+  R('Paint & Chemicals', 'paint|chemicals|chemical|motor oil|pesticide|pesticides|antifreeze|batteries|battery|propane|solvent|paint thinner|weed killer', 'hhw', 'Hazardous materials can leak in donation bins and are illegal to throw in the trash.', 'Hazardous Waste'),
+  R('Car Seat', 'car seat|carseat|booster seat|infant seat', 'carseat', 'Car seats expire and can be recalled or crash-damaged, so most charities can\'t safely pass them on.', 'Car Seats'),
+
+  // --- Never accepted ---
+  X('Alcohol', 'alcohol|wine|beer|liquor|vodka|whiskey|tequila', 'Pantries and shelters can\'t distribute alcohol.', 'Unopened bottles can go to a school or nonprofit auction fundraiser.'),
+  X('Homemade Food', 'homemade food|casserole|baked goods|home cooking|lasagna', 'Health codes don\'t allow pantries to give out food made in home kitchens.', 'Share it with a neighbor, or volunteer at a licensed community kitchen.'),
+];
+
+// Condition modifiers are checked against every item. All are red: they waste volunteer sorting time.
+const CONDITIONS = [
+  { id: 'moldy', kw: 'moldy|mold|mildew|mildewed|rotten|rotting|spoiled', g: '*', label: 'Moldy or spoiled', resale: true,
+    why: 'Mold spreads to everything packed beside it, so volunteers have to throw out the whole box.', instead: 'Compost it in your green bin.' },
+  { id: 'expired', kw: 'expired|past date|past its date|out of date|stale|past the date', g: 'food|baby|hygiene|petfood', label: 'Expired',
+    why: 'Pantries can only hand out in-date food, and pulling expired items off the sorting table eats hours of volunteer time.', instead: 'Compost expired food in your green bin and recycle the packaging.' },
+  { id: 'opened', kw: 'opened|open|half|half used|half eaten|partially used|partial|unsealed|open box|open bag', g: 'food|baby|hygiene|petfood', label: 'Opened',
+    why: 'Once a seal is broken, pantries can\'t verify it\'s safe, so opened items go straight to the trash after a volunteer sorts them.', instead: 'Finish it at home, or offer it to a neighbor on a Buy Nothing group.' },
+  { id: 'rust', kw: 'rusted|rusty|rust', g: 'food|petfood', label: 'Rusted',
+    why: 'Rust can eat pinholes through a can and let bacteria in, so rusty cans are always discarded.', instead: 'Throw the can away unopened.' },
+  { id: 'dent', kw: 'dented|dent|dents|deeply dented|badly dented|bulging|swollen|leaking|puffy|dinged', g: 'food|baby|petfood', label: 'Dented',
+    why: 'Dents on a can\'s seam and bulging lids are botulism warning signs, and volunteers must inspect and discard every one.', instead: 'Throw it away without opening it.' },
+  { id: 'glass', kw: 'glass jar|glass jars|glass bottle|glass bottles|in glass|glass', g: 'food|baby|petfood', label: 'In glass',
+    why: 'Glass breaks in donation bins and soaks everything around it, and volunteers have to clean up the mess and toss the whole box.', instead: 'Use it at home and recycle the jar, then choose plastic jars or cans when you shop to donate.' },
+  { id: 'homemade', kw: 'homemade|home made|home canned|home cooked|leftover|leftovers', g: 'food|baby|petfood', label: 'Homemade',
+    why: 'Health codes don\'t allow pantries to give out food prepared in home kitchens.', instead: 'Share it with a neighbor, or volunteer at a licensed community kitchen.' },
+  { id: 'stained', resale: true, kw: 'dirty|stained|stains|smelly|soiled|muddy', g: 'cloth|gear|new|petgear|linen|baby', label: 'Stained or dirty',
+    why: 'Intake volunteers can\'t wash donations, so stained or dirty items get sorted out and thrown away.', instead: 'Wash it and bring it next time, or use a textile recycling bin.' },
+  { id: 'torn', resale: true, kw: 'torn|ripped|holes|hole|frayed|worn out|threadbare', g: 'cloth|new|gear|linen', label: 'Torn',
+    why: 'Torn items can\'t be handed out, so they cost sorting time and get recycled anyway.', instead: 'Use a textile recycling bin instead.' },
+  { id: 'broken', resale: true, kw: 'broken|cracked|missing parts|not working|doesnt work|does not work', g: 'gear|petgear|pettoy', label: 'Broken',
+    why: 'Families and shelters can\'t use broken equipment, and they pay to haul it away.', instead: 'Check with the manufacturer for parts, or recycle it.' },
+  { id: 'used', kw: 'used|worn|secondhand|second hand|pre owned', g: 'new|baby', label: 'Used',
+    why: 'For hygiene, these must be brand new in the package.', instead: 'Use a textile recycling bin for worn socks and underwear.' },
+  { id: 'plush', kw: 'plush|stuffed|stuffing', g: 'pettoy', label: 'Plush with stuffing',
+    why: 'Shelter dogs shred plush toys in minutes, and swallowed stuffing can block their intestines.', instead: 'Bring durable rubber toys or tennis balls instead.' },
+  { id: 'recalled', kw: 'recalled|recall', g: '*', label: 'Recalled',
+    why: 'Recalled products can\'t legally be given away.', instead: 'Follow the manufacturer\'s recall instructions for a refund or repair.' },
+];
+
+/* --- Text normalization: lowercase, strip punctuation, light plural stemming --- */
+function stem(w) {
+  if (w.length > 4 && /(ches|shes|xes|sses|oes)$/.test(w)) return w.slice(0, -2);
+  if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.length > 3 && w.endsWith('s') && !/(ss|us)$/.test(w)) return w.slice(0, -1);
+  return w;
+}
+const norm = (s) => String(s).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean).map(stem).join(' ');
+const has = (text, phrase) => ` ${text} `.includes(` ${phrase} `);
+
+// Pre-normalize keywords once
+ITEMS.forEach(it => { it.rawKws = it.kw.split('|'); it.kws = it.rawKws.map(norm); });
+CONDITIONS.forEach(c => { c.kws = c.kw.split('|').map(norm); c.groups = c.g === '*' ? '*' : c.g.split('|'); });
+
+function levenshtein(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return dp[a.length][b.length];
+}
+
+/* Link to Tab 2: tokens from each org's published needs, rebuilt whenever Staff Demo edits them */
+const NEED_STOP = new Set(['and', 'with', 'the', 'size', 'sizes', 'pack', 'packs', 'canned', 'food', 'kid', 'kids', 'new', 'warm', 'used', 'clean', 'top', 'pop', 'fresh', 'baby', 'pate', 'bath']);
+let needIndex = [];
+function buildNeedIndex() {
+  needIndex = [];
+  NEED_ORGS.forEach(org => needs[org].items.forEach(it => {
+    const tokens = norm(it.title).split(' ').filter(t => t.length >= 3 && !NEED_STOP.has(t) && !/^\d/.test(t));
+    needIndex.push({ org, item: it, tokens });
+  }));
+}
+// Sacred Heart clothing needs are dropped at the Clothes Closet entrance
+const needDropOrg = (org, it) => org === 'sacred' && /cloth|closet/i.test(it.program) ? 'closet' : org;
+
+const RESALE_WHY = 'ReStore and Goodwill resell what they take, so they can only accept clean items in working condition.';
+const RESALE_INSTEAD = 'Book a free San Jose bulky-item pickup, or check whether the manufacturer sells repair parts.';
+function analyze(input) {
+  const text = norm(input);
+  // 1) Best item: the longest matching keyword phrase wins
+  let item = null, score = 0;
+  for (const it of ITEMS) for (const k of it.kws) if (k.length > score && has(text, k)) { item = it; score = k.length; }
+  // 2) Typo-tolerant fallback for single words ("jaket", "diapr")
+  if (!item) {
+    let best = 3;
+    for (const w of text.split(' ').filter(w => w.length >= 4)) for (const it of ITEMS) for (const k of it.kws) {
+      if (k.includes(' ') || k.length < 4) continue;
+      const d = levenshtein(w, k), limit = k.length >= 7 ? 2 : 1;
+      if (d <= limit && d < best) { best = d; item = it; }
+    }
+    if (item) item = { ...item, fuzzy: true };
+  }
+  // 3) Condition modifiers
+  const conds = [];
+  for (const c of CONDITIONS) {
+    if (!c.kws.some(k => has(text, k))) continue;
+    if (item && item.allow && item.allow[c.id]) { conds.push({ c, ok: true, why: item.allow[c.id] }); continue; }
+    if (item && item.kind === 'accept' && c.groups !== '*' && !c.groups.includes(item.g)) continue;
+    if (item && item.kind === 'redirect') {
+      // Resale stores (ReStore, Goodwill) only take clean, working items; recyclers take anything
+      const resale = item.to === 'restore' || item.to === 'goodwill';
+      if (c.resale && resale) { conds.push({ c, ok: false, why: RESALE_WHY, instead: RESALE_INSTEAD }); continue; }
+      if (c.groups !== '*') continue;
+    }
+    if (item && item.kind === 'reject' && c.groups !== '*') continue;
+    conds.push({ c, ok: false, why: c.why });
+  }
+  const red = conds.find(x => !x.ok);
+  // 4) Is this on an organization's published high-demand list? (from Tab 2 / Staff Demo)
+  let need = null;
+  if (item && item.kind === 'accept') {
+    const words = new Set(text.split(' '));
+    const hit = needIndex.find(u => u.tokens.some(t => words.has(t)));
+    if (hit) {
+      const dropOrg = needDropOrg(hit.org, hit.item);
+      const compatible = [item.dest, ...(item.alt || [])].some(o => ORGS[o].site === ORGS[dropOrg].site);
+      need = { ...hit, dropOrg, compatible };
+    }
+  }
+  let status;
+  if (item && item.kind === 'redirect' && !red) status = 'redirect';
+  else if (item && item.kind === 'reject') status = 'reject';
+  else if (red) status = 'reject';
+  else if (!item) status = 'unknown';
+  else status = 'accept';
+  let dest = item && item.kind === 'accept' ? item.dest : null;
+  if (status === 'accept' && need && need.compatible) dest = need.dropOrg;
+  return { input: input.trim(), text, item, conds, red, need, status, dest };
+}
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const icons = () => window.lucide && lucide.createIcons();
+const directionsUrl = (addr) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+const searchUrl = (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+function ago(ts) {
+  const h = Math.round((Date.now() - ts) / 3600e3);
+  if (h < 1) return 'just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+let toastTimer;
+function toast(text) {
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto rounded-xl bg-white border border-slate-200 shadow-lg px-4 py-3 text-sm text-center fade-up';
+  el.textContent = text;
+  $('#toastWrap').replaceChildren(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.transition = 'opacity 300ms'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, 2400);
+}
+
+/* =====================================================================
+   TABS
+   ===================================================================== */
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach(t => {
+    const on = t.dataset.tab === name;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    t.classList.toggle('bg-white', on);
+    t.classList.toggle('shadow-sm', on);
+    t.classList.toggle('text-ink', on);
+    t.classList.toggle('text-slate-600', !on);
+    t.classList.toggle('hover:bg-white/50', !on);
+  });
+  $('#panel-give').classList.toggle('hidden', name !== 'give');
+  $('#panel-needs').classList.toggle('hidden', name !== 'needs');
+  if (name === 'give') focusMap(lastSites, false);
+}
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => setTab(t.dataset.tab));
+  t.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const next = t.dataset.tab === 'give' ? 'needs' : 'give';
+    setTab(next); $(`#tab-${next}`).focus();
+  });
+});
+
+/* =====================================================================
+   MAP: a hand-drawn schematic of the South Bay (SVG, no map tiles needed)
+   ===================================================================== */
+let lastSites = [], view = null, mapAnim = 0;
+const KX = Math.cos(37.35 * Math.PI / 180);            // longitude squeeze at this latitude
+const P = (lat, lng) => [lng * KX, -lat];               // project to flat units
+const WORLD = { x0: -122.16 * KX, x1: -121.74 * KX, y0: -37.50, y1: -37.20 };
+const BAY = [[37.50,-122.16],[37.50,-121.93],[37.47,-121.93],[37.455,-121.945],[37.44,-121.965],[37.43,-121.985],[37.425,-122.02],[37.43,-122.06],[37.44,-122.10],[37.455,-122.16]];
+const ROADS = [
+  { name: '101', pts: [[37.43,-122.12],[37.40,-122.06],[37.375,-121.97],[37.36,-121.92],[37.34,-121.87],[37.30,-121.83],[37.22,-121.77]] },
+  { name: '880', pts: [[37.50,-121.93],[37.45,-121.92],[37.40,-121.915],[37.35,-121.915],[37.31,-121.94],[37.27,-121.96],[37.22,-121.98]] },
+  { name: '280', pts: [[37.36,-122.12],[37.33,-122.06],[37.32,-122.00],[37.32,-121.93],[37.33,-121.88],[37.345,-121.84]] },
+  { name: '680', pts: [[37.50,-121.90],[37.44,-121.88],[37.38,-121.85],[37.345,-121.84]] },
+  { name: '85',  pts: [[37.40,-122.08],[37.36,-122.06],[37.30,-122.00],[37.26,-121.92],[37.24,-121.84],[37.22,-121.78]] },
+];
+const CITIES = [
+  ['San Jose', 37.333, -121.89], ['Milpitas', 37.437, -121.895], ['Santa Clara', 37.36, -121.97],
+  ['Sunnyvale', 37.37, -122.035], ['Campbell', 37.287, -121.95], ['Cupertino', 37.32, -122.035], ['Los Gatos', 37.235, -121.965],
+];
+
+function fitView(keys) {
+  const pts = (keys.length ? keys : Object.keys(SITES)).map(k => P(SITES[k].lat, SITES[k].lng));
+  let x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0]));
+  let y0 = Math.min(...pts.map(p => p[1])), y1 = Math.max(...pts.map(p => p[1]));
+  const minSpan = 0.06;                                 // never zoom closer than a few miles
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const w = Math.max(x1 - x0, minSpan), h = Math.max(y1 - y0, minSpan);
+  return { cx, cy, w, h };
+}
+function drawMap(v) {
+  const el = $('#map');
+  const W = el.clientWidth || 300, H = el.clientHeight || 260;
+  // Padding in pixels (wider at the sides for the left/right labels), then scale to fit
+  const padX = 70, padY = 44;
+  const s = Math.min((W - 2 * padX) / v.w, (H - 2 * padY) / v.h);
+  const tx = (x) => (W / 2 + (x - v.cx) * s).toFixed(1);
+  const ty = (y) => (H / 2 + (y - v.cy) * s).toFixed(1);
+  const pt = ([lat, lng]) => { const [x, y] = P(lat, lng); return `${tx(x)},${ty(y)}`; };
+  const roads = ROADS.map(r => `<polyline points="${r.pts.map(pt).join(' ')}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${r.pts.map(pt).join(' ')}" fill="none" stroke="var(--road)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+  const shields = ROADS.map(r => { const m = r.pts[Math.floor(r.pts.length / 2)]; const [x, y] = pt(m).split(','); return `<g transform="translate(${x},${y})"><rect x="-11" y="-7" width="22" height="14" rx="3" fill="#fff" stroke="#CBB78F"/><text text-anchor="middle" y="3.5" font-size="9" font-weight="700" fill="#7C6A45">${r.name}</text></g>`; }).join('');
+  const cities = CITIES.map(([n, lat, lng]) => { const [x, y] = pt([lat, lng]).split(',').map(Number); const half = n.length * 4.2;
+    if (x - half < 6 || x + half > W - 6 || y < 14 || y > H - 6) return '';   // skip names the frame would cut
+    return `<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="600" letter-spacing=".06em" fill="#94A3B8">${n.toUpperCase()}</text>`; }).join('');
+  // Screen positions, nudged apart when two pins would overlap (Goodwill and ReStore are 2 miles apart)
+  const pos = {};
+  for (const [k, site] of Object.entries(SITES)) pos[k] = pt([site.lat, site.lng]).split(',').map(Number);
+  const keys = Object.keys(pos);
+  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+    const a = pos[keys[i]], b = pos[keys[j]], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy), min = 22;
+    if (d < min) { const ux = d ? dx / d : 1, uy = d ? dy / d : 0, push = (min - d) / 2; a[0] -= ux * push; a[1] -= uy * push; b[0] += ux * push; b[1] += uy * push; }
+  }
+  const pins = Object.entries(SITES).sort(([a], [b]) => lastSites.includes(a) - lastSites.includes(b)).map(([k, site]) => {
+    const on = lastSites.includes(k);
+    const [x, y] = pos[k];
+    const fill = on ? (site.partner ? '#B45309' : '#047857') : '#94A3B8';
+    const r = on ? 8 : 5;
+    const tw = site.label.length * 6.3 + 14;
+    let dir = site.dir || 'top';
+    // A side label that would run off the frame drops below its pin instead of covering it
+    if ((dir === 'right' && x + r + 6 + tw > W - 6) || (dir === 'left' && x - r - 6 - tw < 6)) dir = 'below';
+    let lx = dir === 'right' ? x + r + 6 : dir === 'left' ? x - r - 6 - tw : x - tw / 2;
+    let ly = dir === 'below' ? y + r + 6 : dir === 'top' ? y - r - 26 : y - 10;
+    lx = Math.max(6, Math.min(W - tw - 6, lx));          // keep every label fully inside the frame
+    ly = Math.max(6, Math.min(H - 26, ly));
+    return `<g>
+      <circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
+      <rect x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" width="${tw.toFixed(1)}" height="20" rx="6" fill="${on ? '#0F172A' : '#fff'}" ${on ? '' : 'stroke="#E2E8F0"'}/>
+      <text x="${(lx + tw / 2).toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${on ? '#fff' : '#475569'}">${esc(site.label)}</text>
+    </g>`;
+  }).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of drop-off locations${lastSites.length ? ': ' + lastSites.map(k => SITES[k].label).join(', ') : ''}">
+    <rect width="${W}" height="${H}" fill="var(--land)"/>
+    <polygon points="${BAY.map(pt).join(' ')}" fill="var(--water)"/>
+    ${roads}${shields}${cities}${pins}
+  </svg>`;
+}
+function initMap() {
+  view = fitView([]);
+  drawMap(view);
+  if (window.ResizeObserver) new ResizeObserver(() => drawMap(view)).observe($('#map'));
+}
+function focusMap(siteKeys, animate = true) {
+  lastSites = siteKeys;
+  const target = fitView(siteKeys);
+  cancelAnimationFrame(mapAnim);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!animate || reduce || !view) { view = target; drawMap(view); return; }
+  const from = { ...view }, t0 = performance.now(), dur = 600;
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+    view = { cx: from.cx + (target.cx - from.cx) * e, cy: from.cy + (target.cy - from.cy) * e, w: from.w + (target.w - from.w) * e, h: from.h + (target.h - from.h) * e };
+    drawMap(view);
+    if (t < 1) mapAnim = requestAnimationFrame(step);
+  };
+  mapAnim = requestAnimationFrame(step);
+}
+
+/* =====================================================================
+   PILLS
+   ===================================================================== */
+function setPillActive(selector, attr, key) {
+  document.querySelectorAll(selector).forEach(b => {
+    const on = b.dataset[attr] === key;
+    b.setAttribute('aria-pressed', on);
+    b.classList.toggle('bg-slate-900', on);
+    b.classList.toggle('border-slate-900', on);
+    b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on);
+    b.classList.toggle('border-slate-200', !on);
+    b.classList.toggle('text-slate-700', !on);
+    b.classList.toggle('hover:border-slate-400', !on);
+  });
+}
+
+/* =====================================================================
+   TAB 1: AUTOCOMPLETE SEARCH + TAP-TO-SELECT PILLS
+   Every selected item runs through the rules engine and gets its own card.
+   ===================================================================== */
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const ORG_SHORT = { sacred: 'Sacred Heart', closet: 'Sacred Heart Clothes Closet', harvest: 'Second Harvest', humane: 'Humane Society SV' };
+const street = (org) => ORGS[org].address.split(',')[0];
+// Drop-off orgs for an accepted result: its destination plus any other site that also takes it
+function dropOrgs(r) {
+  const list = [r.dest, ...(r.dest === r.item.dest && r.item.alt ? r.item.alt : [])];
+  return list.filter((o, i) => list.findIndex(x => ORGS[x].site === ORGS[o].site) === i);
+}
+const GROUP_LABEL = { food: 'Food Pantry', baby: 'Infant & Family', hygiene: 'Hygiene', cloth: 'Clothes Closet', new: 'Clothes Closet', gear: 'Family & School',
+                      petfood: 'Pet Supplies', linen: 'Pet Supplies', petgear: 'Pet Supplies', pettoy: 'Pet Supplies' };
+const categoryOf = (it) => it.kind === 'redirect' ? it.rtype
+  : it.kind === 'reject' ? 'Not accepted' : GROUP_LABEL[it.g];
+
+// The 12 tap-to-select items. q is what the rules engine checks; note is the one-line rule shown.
+const QUICK = [
+  { id: 'canned',   label: 'Canned Food',              icon: 'package',          q: 'canned vegetables', note: 'Unopened, in-date cans are always welcome, and pop-top protein goes fastest.' },
+  { id: 'produce',  label: 'Fresh Produce',            icon: 'apple',            q: 'produce' },
+  { id: 'clothes',  label: 'Coats & Clothes',          icon: 'shirt',            q: 'coat', note: 'Clean, gently used clothes help most, and warm coats are needed through March.' },
+  { id: 'diapers',  label: 'Diapers & Wipes',          icon: 'baby',             q: 'diapers', note: 'A top need, especially sizes 4–6. Clean opened packs are OK if labeled by size.' },
+  { id: 'petfood',  label: 'Pet Food',                 icon: 'bone',             q: 'dog food', note: 'Unopened bags and cans of dog or cat food are used every day.' },
+  { id: 'towels',   label: 'Old Towels & Blankets',    icon: 'bed-double',       q: 'old towels', note: 'Worn towels and blankets become kennel bedding. Just wash them first.' },
+  { id: 'books',    label: 'Kids Books & Backpacks',   icon: 'book-open',        q: 'backpack', note: 'Clean kids\' books and sturdy backpacks help students start the year ready.' },
+  { id: 'shoes',    label: 'Shoes & New Socks',        icon: 'footprints',       q: 'socks', note: 'Gently worn shoes with tread left, plus socks that are brand new in the package.' },
+  { id: 'opened',   label: 'Opened or Expired Food',   icon: 'ban',              q: 'opened cereal', note: 'Pantries can only hand out sealed, in-date food, so these cost volunteers sorting time.' },
+  { id: 'glass',    label: 'Glass Jars',               icon: 'glass-water',      q: 'glass jar' },
+  { id: 'furniture',label: 'Chairs & Furniture',       icon: 'armchair',         q: 'chair' },
+  { id: 'appliance',label: 'Appliances & Electronics', icon: 'microwave',        q: 'microwave', note: 'Food pantries can\'t test or store electrical items, so working ones go to Goodwill instead.' },
+];
+
+// Current selection: { id, label, q, note? }. Canned Food is selected on load.
+let selection = [];
+const pillEntry = (p) => ({ id: `pill:${p.id}`, label: p.label, q: p.q, note: p.note });
+
+/* --- Quick pills --- */
+$('#quickPills').innerHTML = QUICK.map(p => `
+  <button data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-11 py-2 rounded-xl border px-3 text-left text-[13px] font-medium leading-tight transition">
+    <i data-lucide="${p.icon}" class="h-4 w-4 shrink-0"></i><span class="min-w-0">${p.label}</span>
+  </button>`).join('');
+$('#quickPills').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-quick]');
+  if (!b) return;
+  const p = QUICK.find(x => x.id === b.dataset.quick), id = `pill:${p.id}`;
+  selection = selection.some(s => s.id === id) ? selection.filter(s => s.id !== id) : [...selection, pillEntry(p)];
+  closeSuggest();
+  renderSelection();
+});
+
+/* --- Result cards --- */
+const STATUS_UI = {
+  accept:   { icon: 'check',           chip: 'bg-emerald-50 text-emerald-800 border-emerald-200', label: () => 'Accepted' },
+  redirect: { icon: 'corner-up-right', chip: 'bg-amber-50 text-amber-800 border-amber-200',       label: (r) => REDIRECTS[r.item.to].places ? 'Take to Goodwill / ReStore' : 'Other Local Drop-Off' },
+  reject:   { icon: 'x',               chip: 'bg-red-50 text-red-700 border-red-200',             label: () => 'Cannot Donate' },
+  unknown:  { icon: 'help-circle',     chip: 'bg-slate-100 text-slate-600 border-slate-200',      label: () => 'Not sure yet' },
+};
+const statusChip = (r, size = 'text-xs') => {
+  const u = STATUS_UI[r.status];
+  return `<span class="shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${size} font-semibold whitespace-nowrap ${u.chip}"><i data-lucide="${u.icon}" class="h-3 w-3"></i>${esc(u.label(r))}</span>`;
+};
+
+function itemCard(entry, r) {
+  let sentence, details = '';
+  if (r.status === 'accept') {
+    sentence = entry.note || r.item.note;
+    details = dropOrgs(r).map(o => {
+      const h = todayHours(ORGS[o]);
+      return `
+        <div class="flex items-start gap-2">
+          <i data-lucide="map-pin" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-400"></i>
+          <div class="min-w-0">
+            <a target="_blank" rel="noopener" href="${directionsUrl(ORGS[o].address)}" class="font-medium text-slate-800 hover:text-emerald-700">${ORGS[o].name} <span class="font-normal text-slate-500">· ${street(o)}</span></a>
+            <p class="${h.open ? 'text-emerald-700' : 'text-slate-500'}">${h.text}</p>
+          </div>
+        </div>`;
+    }).join('');
+    if (r.need && r.need.compatible) details += `<p class="flex items-start gap-2 text-red-700"><i data-lucide="flame" class="h-3.5 w-3.5 mt-0.5 shrink-0"></i>On ${ORG_SHORT[r.need.dropOrg]}'s high-demand list: ${esc(r.need.item.title)}</p>`;
+  } else if (r.status === 'redirect') {
+    const d = REDIRECTS[r.item.to];
+    sentence = entry.note || r.item.why;
+    details = d.places
+      ? d.places.map(p => `
+        <div class="flex items-start gap-2">
+          <i data-lucide="map-pin" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600"></i>
+          <a target="_blank" rel="noopener" href="${directionsUrl(PARTNERS[p].address)}" class="font-medium text-slate-800 hover:text-amber-800">${PARTNERS[p].name} <span class="font-normal text-slate-500">· ${PARTNERS[p].address.split(',')[0]}</span></a>
+        </div>`).join('')
+      : `
+        <div class="flex items-start gap-2">
+          <i data-lucide="corner-up-right" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600"></i>
+          <div><p class="font-medium text-slate-800">${d.name}</p>
+            <a target="_blank" rel="noopener" href="${searchUrl(d.query)}" class="inline-flex items-center gap-0.5 font-medium text-amber-800 hover:underline">Find the nearest location<i data-lucide="arrow-up-right" class="h-3 w-3"></i></a></div>
+        </div>`;
+  } else if (r.status === 'reject') {
+    const never = r.item && r.item.kind === 'reject';
+    sentence = entry.note || (never ? r.item.why : r.red.why);
+    const instead = never ? r.item.instead : (r.red.instead || r.red.c.instead);
+    details = instead ? `<p class="flex items-start gap-2 text-slate-600"><i data-lucide="lightbulb" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500"></i>Instead: ${entry.ai ? esc(instead) : instead}</p>` : '';
+  } else {
+    sentence = 'We don\'t know this one yet. Try a simpler word, like “coat”, “rice” or “dog food”.';
+  }
+  return `
+    <div class="fade-up rounded-xl border border-slate-200 p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-semibold leading-snug">${esc(entry.label)}</p>
+          ${entry.ai ? '<span class="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
+        </div>
+        ${statusChip(r)}
+      </div>
+      <p class="mt-1 text-[13px] text-slate-600 leading-relaxed">${entry.ai ? esc(sentence) : sentence}</p>
+      ${details ? `<div class="mt-3 space-y-2 text-[13px]">${details}</div>` : ''}
+    </div>`;
+}
+
+function renderSelection() {
+  // Pills reflect the selection
+  document.querySelectorAll('.quick-btn').forEach(b => {
+    const on = selection.some(s => s.id === `pill:${b.dataset.quick}`);
+    b.setAttribute('aria-pressed', on);
+    b.classList.toggle('bg-slate-900', on);
+    b.classList.toggle('border-slate-900', on);
+    b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on);
+    b.classList.toggle('border-slate-200', !on);
+    b.classList.toggle('text-slate-700', !on);
+    b.classList.toggle('hover:border-slate-400', !on);
+  });
+  // "Selected:" line with removable chips
+  $('#selectionBar').innerHTML = selection.length ? `
+    <span class="text-slate-500">Selected:</span>
+    ${selection.map(s => `
+      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 pl-2.5 pr-1 py-0.5 text-[13px] text-slate-700">${esc(s.label)}
+        <button data-unselect="${esc(s.id)}" class="h-5 w-5 grid place-items-center rounded-full hover:bg-slate-200 text-slate-500" aria-label="Remove ${esc(s.label)}"><i data-lucide="x" class="h-3 w-3"></i></button>
+      </span>`).join('')}
+    ${selection.length > 1 ? '<button id="clearSel" class="ml-1 text-[13px] text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-800">Clear selection</button>' : ''}` : '';
+
+  // One card per selected item
+  const pendingCard = aiPending ? `
+    <div class="rounded-xl border border-dashed border-violet-300 bg-violet-50/50 p-4 flex items-center gap-3" role="status">
+      <i data-lucide="loader-2" class="h-4 w-4 text-violet-600 spin shrink-0"></i>
+      <p class="text-[13px] text-violet-900 min-w-0">Claude is sorting <span class="font-semibold">“${esc(aiPending.length > 60 ? aiPending.slice(0, 57) + '…' : aiPending)}”</span></p>
+    </div>` : '';
+  if (!selection.length && !aiPending) {
+    $('#resultLeft').innerHTML = `
+      <div class="fade-up h-full min-h-[200px] grid place-items-center text-center">
+        <div><i data-lucide="mouse-pointer-click" class="h-6 w-6 mx-auto text-slate-300"></i>
+          <p class="mt-2 text-slate-500">Tap an item above, or search, to see where it goes.</p></div>
+      </div>`;
+    icons(); focusMap([]); return;
+  }
+  const results = selection.map(e => ({ e, r: e.ai ? e.r : analyze(e.q) }));
+  const sites = new Set();
+  results.forEach(({ r }) => {
+    if (r.status === 'accept') dropOrgs(r).forEach(o => sites.add(ORGS[o].site));
+    if (r.status === 'redirect') (REDIRECTS[r.item.to].places || []).forEach(p => sites.add(p));
+  });
+  $('#resultLeft').innerHTML = `
+    <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-400">${selection.length <= 1 ? 'Where it goes' : `${selection.length} items · where each goes`}</p>
+    <div class="mt-3 space-y-3">${pendingCard}${results.map(({ e, r }) => itemCard(e, r)).join('')}</div>`;
+  icons();
+  focusMap([...sites]);
+}
+// Kept for Staff Demo: refresh results when published needs change
+const runSearch = renderSelection;
+
+$('#selectionBar').addEventListener('click', (e) => {
+  const x = e.target.closest('[data-unselect]');
+  if (x) { selection = selection.filter(s => s.id !== x.dataset.unselect); renderSelection(); return; }
+  if (e.target.closest('#clearSel')) { selection = []; renderSelection(); }
+});
+
+/* --- Autocomplete combobox --- */
+const setPlaceholder = () => { $('#searchInput').placeholder = innerWidth < 520 ? 'Search or list items…' : 'Search 80+ items, or list a few…'; };
+setPlaceholder(); addEventListener('resize', setPlaceholder);
+const input = $('#searchInput'), box = $('#suggestBox'), list = $('#suggestList');
+const POPULAR = ['Beans', 'Coats & Jackets', 'Diapers', 'Dog Food', 'Bath Towels', 'Furniture'];
+const COND_WORDS = new Set(CONDITIONS.flatMap(c => c.kws.filter(k => !k.includes(' '))));
+let rows = [], active = -1, navigated = false;
+
+function suggest(raw) {
+  const text = norm(raw);
+  if (!text) return { head: 'Popular items', rows: POPULAR.map(n => ITEMS.find(i => i.name === n)).map(it => makeRow(it, '')) };
+  const words = text.split(' ');
+  const prefix = words.filter(w => COND_WORDS.has(w)).join(' ');   // e.g. "opened"
+  const rest = words.filter(w => !COND_WORDS.has(w)).join(' ');
+  const out = [];
+  if (rest) {
+    // Best match per item. Rows show the word that matched ("Chair", "Chickpeas"), not just the group name.
+    const scored = [];
+    for (const it of ITEMS) {
+      const name = norm(it.name);
+      let best = null;
+      const consider = (s, ki) => { const len = ki < 0 ? it.name.length : it.rawKws[ki].length; if (!best || s > best.s || (s === best.s && len < best.len)) best = { s, ki, len }; };
+      if (name.startsWith(rest)) consider(4, -1);
+      it.kws.forEach((k, ki) => {
+        if (k.startsWith(rest)) consider(3, ki);
+        else if (k.split(' ').some(w => w.startsWith(rest))) consider(2, ki);
+        else if (rest.length >= 3 && k.includes(rest)) consider(1, ki);
+      });
+      if (best) scored.push({ ...best, it });
+    }
+    scored.sort((a, b) => b.s - a.s || a.len - b.len);
+    for (const m of scored) {
+      const row = makeRow(m.it, prefix, m.ki);
+      // With a condition word, only list items that word actually affects ("opened cereal", not "opened grocery bags")
+      if (prefix && !row.r.conds.length) continue;
+      out.push(row);
+      if (out.length === 6) break;
+    }
+  }
+  // A typed phrase the engine understands but no row covers (e.g. "glass jar") gets its own row
+  if (!rest) return { head: `Now add the item, e.g. “${prefix} cereal”`, rows: [] };
+  if (!out.length && text.length >= 2) {
+    const r = analyze(raw);
+    if (r.status !== 'unknown') out.push({ label: cap(raw.trim()), cat: r.item ? categoryOf(r.item) : r.red.c.label, q: raw.trim(), r });
+  }
+  return { head: out.length ? (prefix ? `Checking “${prefix}” items` : 'Matching items') : 'No matches yet. Try another word', rows: out.slice(0, 6) };
+}
+function makeRow(it, prefix, ki = -1) {
+  const base = ki >= 0 ? it.rawKws[ki] : it.name;
+  const q = `${prefix} ${ki >= 0 ? it.kws[ki] : it.kws[0]}`.trim();
+  const label = prefix ? `${cap(prefix)} ${base.toLowerCase()}` : cap(base);
+  const cat = categoryOf(it);
+  return { label, cat, q, r: analyze(q) };
+}
+function renderSuggest() {
+  const s = suggest(input.value);
+  rows = s.rows; active = rows.length ? 0 : -1; navigated = false;
+  $('#suggestHead').textContent = s.head;
+  list.innerHTML = rows.map((row, i) => `
+    <li id="opt-${i}" role="option" data-i="${i}" aria-selected="${i === active}"
+        class="opt flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer ${i === active ? 'bg-slate-50' : ''} hover:bg-slate-50">
+      <div class="min-w-0">
+        <p class="text-sm font-medium truncate">${esc(row.label)}</p>
+        <p class="text-xs text-slate-400 truncate">${esc(row.cat)}</p>
+      </div>
+      ${statusChip(row.r, 'text-[11px]')}
+    </li>`).join('');
+  box.classList.remove('hidden');
+  input.setAttribute('aria-expanded', 'true');
+  input.setAttribute('aria-activedescendant', active >= 0 ? `opt-${active}` : '');
+  icons();
+}
+function closeSuggest() {
+  box.classList.add('hidden');
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+}
+function moveActive(d) {
+  if (!rows.length) return;
+  navigated = true;
+  active = (active + d + rows.length) % rows.length;
+  list.querySelectorAll('.opt').forEach((li, i) => {
+    li.classList.toggle('bg-slate-50', i === active);
+    li.setAttribute('aria-selected', i === active);
+  });
+  input.setAttribute('aria-activedescendant', `opt-${active}`);
+  $(`#opt-${active}`).scrollIntoView({ block: 'nearest' });
+}
+function pick(i) {
+  const row = rows[i];
+  if (!row) return;
+  const id = `q:${norm(row.q)}`;
+  if (!selection.some(s => s.id === id)) selection.push({ id, label: row.label, q: row.q });
+  input.value = '';
+  closeSuggest();
+  // Leave the box so the list can't pop back over the pills; a click or keypress reopens it
+  suppressUntil = Date.now() + 400;
+  input.blur();
+  renderSelection();
+}
+
+let suppressUntil = 0;
+input.addEventListener('focus', () => { if (Date.now() > suppressUntil) renderSuggest(); });
+input.addEventListener('click', () => { if (box.classList.contains('hidden')) renderSuggest(); });
+input.addEventListener('input', renderSuggest);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); box.classList.contains('hidden') ? renderSuggest() : moveActive(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
+  else if (e.key === 'Escape') { closeSuggest(); input.blur(); }
+});
+// Enter: if you arrowed to a row, pick it. Otherwise send the typed text to the AI matcher.
+$('#searchForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const viaButton = e.submitter && e.submitter.id === 'askAI';
+  if (!viaButton && navigated && active >= 0 && !box.classList.contains('hidden')) { pick(active); return; }
+  if (!input.value.trim()) { input.focus(); renderSuggest(); return; }
+  closeSuggest();
+  askAI(input.value);
+});
+
+/* --- AI matcher (via the Worker) with instant local fallback --- */
+const ORG_KEYS = new Set(['sacred', 'closet', 'harvest', 'humane']);
+const AI_STATUSES = new Set(['accept', 'redirect', 'reject']);
+
+// Turn one AI result into the same {status, item, dest} shape the rules engine produces
+function fromAI(x) {
+  if (!x || typeof x.label !== 'string' || !AI_STATUSES.has(x.status)) return null;
+  const label = x.label.trim().slice(0, 60) || 'Item';
+  const reason = typeof x.reason === 'string' ? x.reason.slice(0, 220) : '';
+  let r;
+  if (x.status === 'accept' && ORG_KEYS.has(x.org)) {
+    r = { status: 'accept', dest: x.org, item: { kind: 'accept', dest: x.org }, need: null };
+    // Keep the "on the high-demand list" line when the local engine agrees on the place
+    const local = analyze(label);
+    if (local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[x.org].site) r.need = local.need;
+  } else if (x.status === 'redirect' && Object.hasOwn(REDIRECTS, x.redirect_to)) {
+    r = { status: 'redirect', item: { kind: 'redirect', to: x.redirect_to } };
+  } else if (x.status === 'reject') {
+    r = { status: 'reject', item: { kind: 'reject', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
+  } else return null;
+  return { id: `ai:${norm(label)}`, label, q: label, note: reason, ai: true, r };
+}
+
+// Local engine: split a messy list and match each part (used when AI is off or fails)
+function localEntries(text) {
+  return text.split(/,|;|\n|\band\b|&|\+/i).map(s => s.trim()).filter(Boolean).slice(0, 8).map(part => {
+    let r = analyze(part);
+    let label = cap(part.replace(/^(a|an|the|some|my)\s+/i, ''));
+    if (r.status === 'unknown') {            // a half-typed word like "opened cer" -> best autocomplete row
+      const row = suggest(part).rows[0];
+      if (row) return { id: `q:${norm(row.q)}`, label: row.label, q: row.q };
+    }
+    return { id: `q:${norm(part)}`, label, q: part };
+  });
+}
+
+function addEntries(entries) {
+  for (const en of entries) {
+    selection = selection.filter(s => s.id !== en.id);
+    selection.push(en);
+  }
+}
+
+let aiBusy = false, aiPending = '';
+// AI matching goes through our own serverless function (/api/claude), which holds the API key.
+// Any failure (offline, not deployed yet, no key, slow, bad answer) silently uses the local rules engine.
+const AI_URL = '/api/claude';
+const AI_TIMEOUT_MS = 15000;
+
+async function askAI(raw) {
+  const text = raw.trim().slice(0, 400);
+  if (!text || aiBusy) return;
+  input.value = '';
+  suppressUntil = Date.now() + 400;
+  input.blur();
+  let entries = null;
+  aiBusy = true;
+  aiPending = text;
+  renderSelection();
+  $('#askAI').disabled = true;
+  $('#askAIIcon').innerHTML = '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>';
+  $('#askAILabel').textContent = 'Matching…';
+  icons();
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS);
+    const res = await fetch(AI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      const got = data && Array.isArray(data.items)
+        ? data.items.slice(0, 8).map(x => fromAI(x) || (x && x.status === 'unknown' && typeof x.label === 'string' && x.label.trim() ? localEntries(x.label)[0] : null)).filter(Boolean)
+        : [];
+      if (got.length) entries = got;
+    }
+  } catch (_) { /* fall through to the local engine */ }
+  aiBusy = false;
+  aiPending = '';
+  $('#askAI').disabled = false;
+  $('#askAIIcon').innerHTML = '<i data-lucide="sparkles" class="h-4 w-4"></i>';
+  $('#askAILabel').textContent = 'Ask AI';
+  addEntries(entries || localEntries(text));
+  renderSelection();
+}
+// Pressing on a row keeps focus in the input (so blur doesn't fire first); the click then picks it
+list.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-i]')) e.preventDefault(); });
+list.addEventListener('mousedown', (e) => { if (e.target.closest('[data-i]')) e.preventDefault(); });
+list.addEventListener('click', (e) => {
+  const li = e.target.closest('[data-i]');
+  if (li) pick(Number(li.dataset.i));
+});
+// Clicking or tapping anywhere outside the search closes it
+document.addEventListener('pointerdown', (e) => { if (!$('#combo').contains(e.target)) closeSuggest(); });
+input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) closeSuggest(); }, 150));
+
+/* =====================================================================
+   TAB 2: ONE ORGANIZATION AT A TIME
+   ===================================================================== */
+$('#orgBtns').innerHTML = NEED_ORGS.map(k => `
+  <button data-org="${k}" aria-pressed="false" class="org-btn inline-flex items-center rounded-full border px-2.5 py-2 text-[11.5px] font-medium whitespace-nowrap transition">${ORGS[k].name}</button>`).join('');
+$('#orgBtns').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-org]');
+  if (!b) return;
+  selectedOrg = b.dataset.org;
+  renderNeedCard();
+});
+
+const bullets = (list, dot) => `<ul class="mt-2 space-y-1">${list.map(x => `
+  <li class="flex items-start gap-2 text-[13px] leading-snug"><span class="mt-[7px] h-1 w-1 rounded-full shrink-0 ${dot}"></span>${esc(x)}</li>`).join('')}</ul>`;
+
+function renderNeedCard() {
+  setPillActive('.org-btn', 'org', selectedOrg);
+  const o = ORGS[selectedOrg], n = needs[selectedOrg];
+  const h = todayHours(o);
+  $('#needCard').innerHTML = `
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-6 pb-2">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="text-xl font-semibold tracking-tight">${o.name}</h2>
+            <p class="mt-0.5 text-xs text-slate-400">Last updated ${ago(updated[selectedOrg])}</p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-sm font-semibold">
+            <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>Published High-Demand Needs
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+          ${n.items.map(it => `
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
+              <span class="inline-block rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600">${esc(it.program)}</span>
+              <p class="mt-2.5 text-[15px] font-bold leading-snug">${esc(it.title)}</p>
+              <p class="mt-1.5 text-[13px] text-slate-600 leading-relaxed">${esc(it.spec)}</p>
+            </div>`).join('')}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
+          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 text-emerald-900">
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><i data-lucide="check" class="h-4 w-4"></i>Everyday Staples Also Accepted</p>
+            ${bullets(n.staples, 'bg-emerald-600')}
+          </div>
+          <div class="bg-rose-50/60 border border-rose-200 rounded-xl p-3.5 text-rose-900">
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-800"><i data-lucide="x" class="h-4 w-4"></i>Please Do Not Bring</p>
+            ${bullets(n.doNot, 'bg-rose-500')}
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-5 bg-slate-50 border-t border-slate-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div class="flex items-start gap-2">
+          <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
+          <div><p class="text-slate-800">${o.address}</p>
+            <a target="_blank" rel="noopener" href="${directionsUrl(o.address)}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
+        </div>
+        <div class="flex items-start gap-2">
+          <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
+          <div><p class="text-slate-800">${hoursLine(o)}</p><p class="text-[13px] ${h.open ? 'text-emerald-700' : 'text-slate-500'}">${h.text}</p></div>
+        </div>
+        <div class="sm:col-span-2 flex items-start gap-2">
+          <i data-lucide="car" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
+          <p class="text-slate-700"><span class="font-medium text-slate-900">When you arrive:</span> ${esc(n.arrival)}</p>
+        </div>
+      </div>
+    </div>`;
+  icons();
+}
+
+/* =====================================================================
+   STAFF DEMO (edits Tab 2 and the high-demand matching in Tab 1)
+   ===================================================================== */
+$('#fOrg').innerHTML = NEED_ORGS.map(k => `<option value="${k}">${ORGS[k].name}</option>`).join('');
+const inputCls = 'w-full rounded-lg border border-slate-200 px-3 h-9 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100';
+function fillStaffForm() {
+  const n = needs[$('#fOrg').value];
+  $('#fItems').innerHTML = n.items.map((it, i) => `
+    <fieldset class="rounded-xl border border-slate-200 p-3.5">
+      <legend class="px-1 text-xs font-semibold text-slate-500">Priority need ${i + 1}</legend>
+      <div class="grid grid-cols-2 gap-2">
+        <input data-field="program" data-i="${i}" maxlength="24" value="${esc(it.program)}" placeholder="Program" aria-label="Program for need ${i + 1}" class="${inputCls}" />
+        <input data-field="title" data-i="${i}" maxlength="40" value="${esc(it.title)}" placeholder="Item" aria-label="Item for need ${i + 1}" class="${inputCls}" />
+        <input data-field="spec" data-i="${i}" maxlength="90" value="${esc(it.spec)}" placeholder="Store spec (sizes, container, rules)" aria-label="Store spec for need ${i + 1}" class="${inputCls} col-span-2" />
+      </div>
+    </fieldset>`).join('');
+  $('#fError').classList.add('hidden');
+}
+$('#fOrg').addEventListener('change', fillStaffForm);
+
+const staffModal = $('#staffModal');
+function closeStaff() {
+  if (staffModal.classList.contains('hidden')) return;
+  staffModal.classList.add('hidden');
+  document.body.style.overflow = '';
+  $('#staffBtn').focus();
+}
+$('#staffBtn').addEventListener('click', () => {
+  $('#fOrg').value = selectedOrg;
+  fillStaffForm();
+  staffModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  icons();
+  $('#fOrg').focus();
+});
+staffModal.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeStaff(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeStaff(); });
+
+$('#staffForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const org = $('#fOrg').value;
+  const val = (f, i) => document.querySelector(`[data-field="${f}"][data-i="${i}"]`).value.trim();
+  const items = [0, 1, 2].map(i => ({ program: val('program', i), title: val('title', i), spec: val('spec', i) }));
+  if (items.some(it => !it.title || !it.program || !it.spec)) {
+    $('#fError').textContent = 'Please fill in the program, item and store spec for all 3 needs.';
+    $('#fError').classList.remove('hidden');
+    return;
+  }
+  needs[org].items = items;
+  updated[org] = Date.now();
+  buildNeedIndex();
+  saveState();
+  closeStaff();
+  selectedOrg = org;
+  renderNeedCard();
+  renderSelection();   // refresh Tab 1 against the new list
+  toast(`Published needs updated for ${ORGS[org].name}`);
+});
+
+/* =====================================================================
+   START
+   ===================================================================== */
+$('#resetDemo').addEventListener('click', (e) => {
+  e.preventDefault();
+  const link = e.currentTarget;
+  if (link.dataset.armed !== '1') {           // ask in place: a second click confirms
+    link.dataset.armed = '1';
+    link.textContent = 'Click again to reset demo data';
+    clearTimeout(link._t);
+    link._t = setTimeout(() => { link.dataset.armed = ''; link.textContent = 'Reset demo data'; }, 4000);
+    return;
+  }
+  try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+  link.dataset.armed = '';
+  link.textContent = 'Reset demo data';
+  needs = JSON.parse(JSON.stringify(SEED_NEEDS));
+  updated = { ...SEED_UPDATED };
+  buildNeedIndex();
+  renderNeedCard();
+  renderSelection();
+  toast('Demo data reset');
+});
+loadState();
+buildNeedIndex();
+initMap();
+renderNeedCard();
+setTab('give');
+selection = [pillEntry(QUICK[0])];   // Canned Food selected on load
+renderSelection();
+icons();
+</script>
+</body>
+</html>
