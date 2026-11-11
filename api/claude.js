@@ -1,11 +1,25 @@
-// Vercel serverless function: POST /api/claude  { text }  ->  { items: [...] }
+// Vercel serverless function: POST /api/claude
+//   { text }                    -> { items: [...] }   typed list
+//   { image, mediaType }        -> { items: [...] }   photo of a donation pile (base64, already shrunk by the page)
 // The API key stays on Vercel (Project Settings > Environment Variables > ANTHROPIC_API_KEY).
 // The page falls back to its built-in rules engine on any non-200 answer.
 
 // First choice, then a fallback if the first model is unavailable on this account.
 const MODELS = ['claude-haiku-4-5', 'claude-haiku-5-5'];
 const MAX_INPUT = 400;
-const TIME_LIMIT_MS = 4000;   // total budget, so the page never waits long before using its own rules
+const TIME_LIMIT_MS = 4000;   // total budget for text, so the page never waits long before using its own rules
+const PHOTO_TIME_LIMIT_MS = 15000;   // reading a photo takes longer, and there's no local fallback for it
+const MAX_IMAGE_CHARS = 3_000_000;   // about 2.2 MB of image; the page sends ~150-400 KB
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+// Room for photo requests on Vercel (seconds)
+export const config = { maxDuration: 30 };
+
+const PHOTO_PROMPT = `This is a photo of things someone wants to donate. List every distinct item you can see that
+someone might donate (group identical things: "3 cans of beans" is one item, "Canned Beans").
+Judge each item's condition from the photo: if food is clearly opened or a container is glass, use "reject".
+Ignore people, pets, furniture that is clearly part of the room, and the background. If you see no donatable
+items, return an empty list.`;
 
 const SYSTEM = `You sort donation items for GiveLocal South Bay (San Jose, Campbell, Milpitas).
 The user's message describes things someone wants to donate: one item or a messy list
@@ -65,10 +79,26 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'not_configured' });
 
-  const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
-  if (!text || text.length > MAX_INPUT) return res.status(400).json({ error: 'bad_input' });
+  const body = req.body || {};
+  let content, budget;
+  if (typeof body.image === 'string') {
+    const mediaType = IMAGE_TYPES.has(body.mediaType) ? body.mediaType : null;
+    if (!mediaType || !body.image || body.image.length > MAX_IMAGE_CHARS || !/^[A-Za-z0-9+/=]+$/.test(body.image)) {
+      return res.status(400).json({ error: 'bad_image' });
+    }
+    content = [
+      { type: 'image', source: { type: 'base64', media_type: mediaType, data: body.image } },
+      { type: 'text', text: PHOTO_PROMPT },
+    ];
+    budget = PHOTO_TIME_LIMIT_MS;
+  } else {
+    const text = typeof body.text === 'string' ? body.text.trim() : '';
+    if (!text || text.length > MAX_INPUT) return res.status(400).json({ error: 'bad_input' });
+    content = text;
+    budget = TIME_LIMIT_MS;
+  }
 
-  const deadline = Date.now() + TIME_LIMIT_MS;
+  const deadline = Date.now() + budget;
   try {
     let msg = null, lastStatus = 0;
     for (const model of MODELS) {
@@ -89,7 +119,7 @@ export default async function handler(req, res) {
           model,
           max_tokens: 1500,
           system: SYSTEM,
-          messages: [{ role: 'user', content: text }],
+          messages: [{ role: 'user', content }],
           output_config,
           ...extra,
         }),

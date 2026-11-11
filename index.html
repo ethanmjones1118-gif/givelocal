@@ -95,10 +95,14 @@
     <section id="panel-give" role="tabpanel" aria-labelledby="tab-give">
       <form id="searchForm" autocomplete="off" class="max-w-3xl">
         <label for="searchInput" class="sr-only">Describe what you want to donate</label>
-        <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-5 pr-2.5 h-14 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
-          <i data-lucide="search" class="h-5 w-5 text-slate-400 shrink-0"></i>
+        <div class="flex items-center gap-2 sm:gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-4 sm:pl-5 pr-2.5 h-14 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
+          <i data-lucide="search" class="hidden sm:block h-5 w-5 text-slate-400 shrink-0"></i>
           <input id="searchInput" type="text" enterkeyhint="search" maxlength="400"
             class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
+          <input id="photoInput" type="file" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true" />
+          <button id="photoBtn" type="button" aria-label="Scan a photo of your donation pile" title="Scan a photo of your donation pile" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:border-emerald-600 hover:text-emerald-800 active:scale-[0.97] disabled:opacity-60 transition">
+            <i data-lucide="camera" class="h-4 w-4"></i><span class="hidden sm:inline">Scan photo</span>
+          </button>
           <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.97] disabled:opacity-70 transition">
             <span id="askAIIcon" class="grid place-items-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span id="askAILabel">Ask AI</span>
           </button>
@@ -896,12 +900,15 @@ let selection = [pillEntry(QUICK[0])];   // Canned Food on load
 let source = 'pills';                    // 'pills' or 'search'
 let lastAI = false;                      // did Claude sort the current results?
 let pending = '';                        // text being sorted right now
+let photo = null;                        // { url } of the photo being or last scanned
+let photoNote = '';                      // why a photo scan found nothing, shown in place of results
 let searchSeq = 0, searchCtrl = null;
 const input = $('#searchInput');
 const isDefault = () => source === 'pills' && selection.length === 1 && selection[0].id === 'pill:canned';
 
 function setBusy(on) {
   $('#askAI').disabled = on;
+  $('#photoBtn').disabled = on;
   $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="sparkles" class="h-4 w-4"></i>';
   $('#askAILabel').textContent = on ? 'Sorting...' : 'Ask AI';
   icons();
@@ -910,11 +917,16 @@ function cancelSearch() {
   searchSeq++;
   if (searchCtrl) searchCtrl.abort();
   pending = '';
+  photoNote = '';
   setBusy(false);
+}
+function clearPhoto() {
+  if (photo) URL.revokeObjectURL(photo.url);
+  photo = null;
 }
 function resetToDefault() {
   cancelSearch();
-  source = 'pills'; lastAI = false;
+  source = 'pills'; lastAI = false; clearPhoto();
   selection = [pillEntry(QUICK[0])];
   input.value = '';
   render();
@@ -930,7 +942,7 @@ $('#quickPills').addEventListener('click', (e) => {
   if (!b) return;
   const p = QUICK.find(x => x.id === b.dataset.quick), id = `pill:${p.id}`;
   cancelSearch();
-  if (source !== 'pills') { source = 'pills'; selection = []; lastAI = false; }   // a pill replaces typed results
+  if (source !== 'pills') { source = 'pills'; selection = []; lastAI = false; clearPhoto(); }   // a pill replaces typed or photo results
   input.value = '';
   selection = selection.some(s => s.id === id) ? selection.filter(s => s.id !== id) : [...selection, pillEntry(p)];
   render();
@@ -964,6 +976,12 @@ $('#selectionBar').addEventListener('click', (e) => {
   if (u) { selection = selection.filter(s => s.id !== u.dataset.unselect); render(); }
 });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-reset]')) resetToDefault(); });
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-type-instead]')) return;
+  photoNote = ''; clearPhoto(); source = 'search'; selection = [];
+  render(false);
+  input.focus();
+});
 
 /* =====================================================================
    MULTI-ITEM PARSER (always available; also the fallback when AI is slow or down)
@@ -1041,7 +1059,7 @@ async function runSearch(raw) {
   cancelSearch();
   const seq = searchSeq, ctrl = new AbortController();
   searchCtrl = ctrl;
-  source = 'search'; selection = []; lastAI = false;   // typed search replaces any pills
+  source = 'search'; selection = []; lastAI = false; clearPhoto();   // typed search replaces any pills or photo
   pending = text;
   setBusy(true);
   render();
@@ -1067,7 +1085,76 @@ async function runSearch(raw) {
   render();
 }
 $('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); runSearch(input.value); });
-const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Type what you have…' : 'Type what you have, e.g. “two coats and a lamp”'; };
+
+/* =====================================================================
+   PHOTO SCAN: snap the donation pile, Claude lists what it sees, the trip plans itself
+   ===================================================================== */
+const PHOTO_MAX_SIDE = 1280;           // plenty for Claude to read labels, and a quick upload on a phone
+const PHOTO_TIMEOUT_MS = 20000;
+// Shrink in the browser: phone photos are 3-8 MB, the upload becomes ~150-400 KB
+function shrinkPhoto(file) {
+  return new Promise((resolveP, rejectP) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);   // transparent PNGs become white, not black
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const data = c.toDataURL('image/jpeg', 0.82).split(',')[1];
+      resolveP({ url, data, mediaType: 'image/jpeg' });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rejectP(new Error('decode')); };
+    img.src = url;
+  });
+}
+async function runPhoto(file) {
+  if (!file || aiBusyGuard()) return;
+  cancelSearch();
+  const seq = searchSeq, ctrl = new AbortController();
+  searchCtrl = ctrl;
+  source = 'photo'; selection = []; lastAI = false; input.value = ''; clearPhoto();
+  let shot;
+  try { shot = await shrinkPhoto(file); }
+  catch (_) { photoNote = 'This photo couldn’t be opened. Try a JPEG or PNG, or type what you have instead.'; render(); return; }
+  if (seq !== searchSeq) { URL.revokeObjectURL(shot.url); return; }
+  photo = { url: shot.url };
+  pending = 'your photo';
+  setBusy(true);
+  render();
+  let entries = null, found = false;
+  const timer = setTimeout(() => ctrl.abort(), PHOTO_TIMEOUT_MS);
+  try {
+    const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: shot.data, mediaType: shot.mediaType }), signal: ctrl.signal });
+    if (res.ok) {
+      const data = await res.json();
+      found = true;
+      const seen = new Set();
+      entries = (data && Array.isArray(data.items) ? data.items : []).slice(0, 8).map(fromAI)
+        .filter(en => en && !seen.has(en.id) && seen.add(en.id));
+    }
+  } catch (_) { /* handled below */ }
+  clearTimeout(timer);
+  if (seq !== searchSeq) return;
+  pending = '';
+  setBusy(false);
+  if (entries && entries.length) { selection = entries; lastAI = entries.some(en => en.ai); }
+  else photoNote = found
+    ? 'Claude didn’t spot anything to donate in this photo. Try a closer shot of the items, or type what you have.'
+    : 'The photo scan isn’t available right now. Type what’s in the photo and the built-in sorter will plan your trip.';
+  render();
+}
+const aiBusyGuard = () => $('#askAI').disabled;
+$('#photoBtn').addEventListener('click', () => $('#photoInput').click());
+$('#photoInput').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';                  // picking the same photo again still triggers a scan
+  if (f) runPhoto(f);
+});
+const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Type items…' : 'Type what you have, e.g. “two coats and a lamp”'; };
 setPlaceholder(); addEventListener('resize', setPlaceholder);
 
 /* =====================================================================
@@ -1165,12 +1252,28 @@ function renderResults(items, animate) {
   if (pending) {
     left.innerHTML = `
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5" role="status">
-        <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>
+        ${photo ? `
+        <div class="flex items-center gap-3">
+          <img src="${photo.url}" alt="Your photo" class="h-16 w-16 rounded-xl object-cover border border-slate-200">
+          <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Claude is finding every item in your photo…</p>
+        </div>` : `
+        <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>`}
         <div class="mt-4 space-y-3 animate-pulse">
           <div class="h-16 rounded-xl bg-slate-200"></div>
           <div class="h-4 w-2/5 rounded bg-slate-200"></div>
           <div class="flex gap-2"><div class="h-7 w-24 rounded-full bg-slate-200"></div><div class="h-7 w-28 rounded-full bg-slate-200"></div><div class="h-7 w-20 rounded-full bg-slate-200"></div></div>
           <div class="h-3.5 w-11/12 rounded bg-slate-200"></div>
+        </div>
+      </div>`;
+    icons(); return;
+  }
+  if (photoNote) {
+    left.innerHTML = `
+      <div class="rounded-2xl border border-slate-300 bg-white shadow-sm p-5 flex items-start gap-3">
+        ${photo ? `<img src="${photo.url}" alt="Your photo" class="h-16 w-16 rounded-xl object-cover border border-slate-200 shrink-0">` : '<i data-lucide="camera-off" class="h-5 w-5 text-slate-400 shrink-0 mt-0.5"></i>'}
+        <div class="min-w-0">
+          <p class="text-[14px] text-slate-700 leading-relaxed">${photoNote}</p>
+          <button type="button" data-type-instead class="mt-2.5 inline-flex items-center h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Type it instead</button>
         </div>
       </div>`;
     icons(); return;
@@ -1191,8 +1294,10 @@ function renderResults(items, animate) {
   left.innerHTML = `
     <div class="${animate ? 'fade-up' : ''} space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">${n} item${n === 1 ? '' : 's'} · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>
-        ${lastAI && source === 'search' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
+        ${source === 'photo' && photo ? `
+        <p class="flex items-center gap-2.5 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>` : `
+        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">${n} item${n === 1 ? '' : 's'} · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>`}
+        ${lastAI && source !== 'pills' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
       </div>
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
@@ -1211,10 +1316,10 @@ function render(animate = true) {
     b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
   });
   renderBar();
-  const items = pending ? [] : selection.map(resolve);
+  const items = pending || photoNote ? [] : selection.map(resolve);
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);
-  $('#tripBanner').innerHTML = !pending && trip.stops.length ? bannerHtml(trip.stops) : '';
+  $('#tripBanner').innerHTML = !pending && !photoNote && trip.stops.length ? bannerHtml(trip.stops) : '';
   icons();
   routeTrip();
 }
