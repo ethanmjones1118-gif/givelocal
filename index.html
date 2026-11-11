@@ -8,6 +8,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23047857'/%3E%3Cpath d='M16 23s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 23 14c0 4.8-7 9-7 9z' fill='white'/%3E%3C/svg%3E" />
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -33,7 +35,24 @@
   @keyframes spin { to { transform: rotate(360deg) } }
   .spin { animation: spin 0.9s linear infinite; }
   @media (prefers-reduced-motion: reduce) { .fade-up, .spin { animation: none; } }
-  #map svg { display: block; width: 100%; height: 100%; }
+  .leaflet-container { font-family: inherit; background: #F1F5F9; }
+  .leaflet-popup-content { margin: 12px 14px; }
+  .leaflet-popup-content p { margin: 0; }
+  .leaflet-popup-content-wrapper { border-radius: 12px; }
+  .leaflet-tooltip.site-tip { background: #0F172A; color: #fff; border: 0; border-radius: 6px; padding: 3px 7px; font-size: 11px; font-weight: 600; box-shadow: none; }
+  .leaflet-tooltip.site-tip::before { border-top-color: #0F172A; }
+  .leaflet-tooltip-left.site-tip::before { border-top-color: transparent; border-left-color: #0F172A; }
+  .leaflet-tooltip-right.site-tip::before { border-top-color: transparent; border-right-color: #0F172A; }
+  .leaflet-tooltip-left.site-tip.dim::before { border-left-color: #fff; }
+  .leaflet-tooltip-bottom.site-tip::before { border-top-color: transparent; border-bottom-color: #0F172A; }
+  .leaflet-tooltip-bottom.site-tip.dim::before { border-bottom-color: #fff; }
+  .leaflet-tooltip-right.site-tip.dim::before { border-right-color: #fff; }
+  .leaflet-tooltip.site-tip.dim { background: #fff; color: #475569; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+  .leaflet-tooltip-top.site-tip.dim::before { border-top-color: #fff; }
+  .leaflet-tooltip.site-tip.start { background: #2563EB; }
+  .leaflet-tooltip.site-tip.start::before { border-top-color: transparent; border-bottom-color: #2563EB; }
+  button, a, select { -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
   :focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
 </style>
 </head>
@@ -43,7 +62,7 @@
 
   <!-- Top bar -->
   <nav class="topbar sticky z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center gap-3">
+    <div class="max-w-5xl mx-auto px-5 sm:px-6 h-16 flex items-center gap-3">
       <span class="h-8 w-8 rounded-lg bg-emerald-700 grid place-items-center shrink-0">
         <i data-lucide="hand-heart" class="h-4 w-4 text-white"></i>
       </span>
@@ -52,103 +71,119 @@
     </div>
   </nav>
 
-  <main class="max-w-3xl mx-auto px-6 pt-14 sm:pt-16 pb-20">
+  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-12 sm:pt-14 pb-20">
 
     <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">How would you like to donate today?</h1>
 
     <!-- Tabs -->
-    <div role="tablist" class="mt-8 grid grid-cols-2 gap-3 p-1.5 bg-slate-200/70 rounded-2xl mb-8">
-      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 transition">
+    <div role="tablist" class="mt-7 grid grid-cols-2 gap-2 p-1.5 bg-slate-200/70 rounded-2xl mb-7 max-w-3xl">
+      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 transition">
         <span class="block text-[15px] sm:text-base font-semibold">1. I have items to donate</span>
         <span class="block mt-0.5 text-[13px] text-slate-500">Find where they go</span>
       </button>
-      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 transition">
+      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 transition">
         <span class="block text-[15px] sm:text-base font-semibold">2. See what local pantries need</span>
-        <span class="block mt-0.5 text-[13px] text-slate-500">Published high-demand needs</span>
+        <span class="block mt-0.5 text-[13px] text-slate-500">Tap a need to plan the drop-off</span>
       </button>
     </div>
 
     <!-- TAB 1 -->
     <section id="panel-give" role="tabpanel" aria-labelledby="tab-give">
-      <div id="combo" class="relative">
-        <form id="searchForm" autocomplete="off">
-          <label for="searchInput" class="sr-only">Search 80+ items</label>
-          <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm px-5 h-16 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
-            <i data-lucide="search" class="h-5 w-5 text-slate-400 shrink-0"></i>
-            <input id="searchInput" type="text" role="combobox" aria-expanded="false" aria-controls="suggestList" aria-autocomplete="list"
-              placeholder="Search 80+ items, or list a few..."
-              class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
-            <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60 transition">
-              <span id="askAIIcon" class="grid place-items-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span id="askAILabel">Ask AI</span>
-            </button>
+      <form id="searchForm" autocomplete="off" class="max-w-3xl">
+        <label for="searchInput" class="sr-only">Describe what you want to donate</label>
+        <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-5 pr-3 h-16 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
+          <i data-lucide="search" class="h-5 w-5 text-slate-400 shrink-0"></i>
+          <input id="searchInput" type="text" enterkeyhint="search" maxlength="400"
+            class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
+          <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.97] disabled:opacity-70 transition">
+            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span id="askAILabel">Ask AI</span>
+          </button>
+        </div>
+      </form>
+      <div id="examples" class="mt-2.5 flex flex-wrap gap-2 max-w-3xl"></div>
+
+      <p class="mt-6 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
+      <div id="quickPills" class="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"></div>
+      <div id="selectionBar" class="mt-4 min-h-[30px] flex flex-wrap items-center gap-1.5 text-sm"></div>
+
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+        <div id="resultLeft" class="md:col-span-7 min-w-0" aria-live="polite"></div>
+        <aside id="mapPanel" class="md:col-span-5 md:sticky md:top-20 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="flex items-center gap-2 px-3.5 py-2.5 border-b border-slate-200">
+            <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0"></span>
+            <label for="startSel" class="text-[13px] text-slate-600 whitespace-nowrap">Starting from</label>
+            <select id="startSel" class="flex-1 min-w-0 h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
           </div>
-        </form>
-        <div id="suggestBox" class="hidden absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-200 max-h-60 overflow-y-auto z-50">
-          <p id="suggestHead" class="px-4 pt-2.5 pb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400"></p>
-          <ul id="suggestList" role="listbox" aria-label="Matching items" class="pb-1.5"></ul>
-        </div>
-      </div>
-
-      <p class="mt-5 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
-      <div id="quickPills" class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
-      <div id="selectionBar" class="mt-4 min-h-[28px] flex flex-wrap items-center gap-1.5 text-sm"></div>
-
-      <div class="mt-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden grid grid-cols-1 md:grid-cols-12">
-        <div id="resultLeft" class="md:col-span-7 p-6"></div>
-        <div class="md:col-span-5 bg-slate-100 min-h-[260px] relative isolate border-t md:border-t-0 md:border-l border-slate-200">
-          <div id="map" class="absolute inset-0"></div>
-        </div>
+          <div class="relative isolate">
+            <div id="map" class="h-[300px] md:h-[430px] bg-slate-100"></div>
+          </div>
+          <p id="routeChip" hidden class="flex items-center gap-2 px-3.5 py-2.5 border-t border-slate-200 text-[13px] font-medium text-slate-800"></p>
+        </aside>
       </div>
     </section>
 
     <!-- TAB 2 -->
-    <section id="panel-needs" role="tabpanel" aria-labelledby="tab-needs" class="hidden">
-      <div class="flex flex-wrap md:flex-nowrap items-center justify-between gap-2">
-        <div id="orgBtns" class="flex flex-wrap md:flex-nowrap items-center gap-1.5 min-w-0"></div>
-        <button id="staffBtn" class="shrink-0 inline-flex items-center gap-1 px-1 py-2 text-xs font-medium text-slate-400 hover:text-slate-700 transition whitespace-nowrap">
-          <i data-lucide="plus" class="h-3.5 w-3.5"></i>Staff Demo
+    <section id="panel-needs" role="tabpanel" aria-labelledby="tab-needs" class="hidden max-w-3xl">
+      <div id="orgBtns" class="flex flex-wrap items-center gap-1.5"></div>
+      <div id="needCard" class="mt-5"></div>
+      <div class="mt-4 flex justify-end">
+        <button id="staffBtn" type="button" class="inline-flex items-center gap-1.5 h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 hover:border-slate-400 active:scale-[0.98] transition">
+          <i data-lucide="plus" class="h-4 w-4"></i>Staff Demo: add an urgent need
         </button>
       </div>
-      <div id="needCard" class="mt-6"></div>
     </section>
 
-    <footer class="mt-20 text-xs text-slate-400 leading-relaxed">
-      Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go. Map is a simplified sketch; use the directions links for exact routes.
+    <footer class="mt-16 text-xs text-slate-400 leading-relaxed max-w-3xl">
+      Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go.
+      Map © OpenStreetMap contributors; driving routes from the OSRM demo server.
       <a href="#" id="resetDemo" class="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600">Reset demo data</a>
     </footer>
   </main>
 
   <!-- Staff Demo modal -->
-  <div id="staffModal" class="fixed inset-0 z-[60] hidden overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staffTitle">
+  <div id="staffModal" class="fixed inset-0 z-[1200] hidden overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staffTitle">
     <div data-close class="fixed inset-0 bg-slate-900/30"></div>
-    <div class="relative mx-auto my-12 w-[calc(100%-2rem)] max-w-xl bg-white rounded-2xl border border-slate-200 shadow-lg fade-up">
+    <div class="relative mx-auto my-12 w-[calc(100%-2rem)] max-w-lg bg-white rounded-2xl border border-slate-200 shadow-lg fade-up">
       <div class="flex items-start justify-between px-6 pt-6">
         <div>
           <p class="text-xs font-medium text-amber-700">Staff Demo</p>
-          <h3 id="staffTitle" class="mt-0.5 text-lg font-semibold">Edit published priority needs</h3>
-          <p class="mt-1 text-[13px] text-slate-500">Shows how a coordinator could update what donors see. Saved in this browser only.</p>
+          <h3 id="staffTitle" class="mt-0.5 text-lg font-semibold">Add an urgent need</h3>
+          <p class="mt-1 text-[13px] text-slate-500">Shows how a coordinator could publish a need. It appears first on the list and is saved in this browser only.</p>
         </div>
-        <button data-close class="h-8 w-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Close">
+        <button type="button" data-close class="h-8 w-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Close">
           <i data-lucide="x" class="h-4 w-4"></i>
         </button>
       </div>
-      <form id="staffForm" class="px-6 py-5">
+      <form id="staffForm" class="px-6 py-5 space-y-3.5" novalidate>
         <label class="block">
           <span class="text-sm text-slate-600">Organization</span>
           <select id="fOrg" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm bg-white focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
         </label>
-        <div id="fItems" class="mt-5 space-y-4"></div>
-        <p id="fError" class="hidden mt-3 text-sm text-red-600"></p>
-        <div class="mt-6 flex justify-end gap-2">
+        <label class="block">
+          <span class="text-sm text-slate-600">Item needed</span>
+          <input id="fTitle" maxlength="40" placeholder="e.g. Size 5–6 Diapers" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <label class="block">
+            <span class="text-sm text-slate-600">Program</span>
+            <input id="fProgram" maxlength="24" placeholder="e.g. Infant &amp; Family" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-600">What to buy</span>
+            <input id="fSpec" maxlength="90" placeholder="e.g. Unopened packs, any brand" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+          </label>
+        </div>
+        <p id="fError" hidden class="text-sm text-red-600"></p>
+        <div class="pt-2 flex justify-end gap-2">
           <button type="button" data-close class="h-10 px-4 rounded-xl border border-slate-200 text-sm font-medium hover:bg-slate-50">Cancel</button>
-          <button class="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium">Save</button>
+          <button type="submit" class="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white text-sm font-medium transition">Publish need</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Toast -->
-  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -translate-x-1/2 z-[1300] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
 
 <script>
 /* =====================================================================
@@ -160,8 +195,8 @@ const SITES = {
   harvest: { lat: 37.41367, lng: -121.95190, label: 'Second Harvest' },
   humane:  { lat: 37.42175, lng: -121.88758, label: 'Humane Society SV', dir: 'below' },
   // Other local drop-offs for furniture, appliances and electronics
-  restore: { lat: 37.35986, lng: -121.86785, label: 'Habitat ReStore', partner: true, dir: 'right' },
-  goodwill:{ lat: 37.35954, lng: -121.89829, label: 'Goodwill SV', partner: true, dir: 'left' },
+  restore: { lat: 37.35986, lng: -121.86785, label: 'ReStore', partner: true },
+  goodwill:{ lat: 37.35954, lng: -121.89829, label: 'Goodwill', partner: true },
 };
 
 // days: 0 = Sun … 6 = Sat
@@ -228,7 +263,7 @@ let selectedOrg = 'sacred';
 /* =====================================================================
    SAVED IN THIS BROWSER (Staff Demo edits only)
    ===================================================================== */
-const STORE_KEY = 'givelocal-southbay-demo-v8';
+const STORE_KEY = 'givelocal-southbay-demo-v9';
 function saveState() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ items: Object.fromEntries(NEED_ORGS.map(k => [k, needs[k].items])), updated })); } catch (_) {}
 }
@@ -239,7 +274,7 @@ function loadState() {
     const str = (v) => typeof v === 'string';
     NEED_ORGS.forEach(k => {
       const items = data.items[k];
-      if (Array.isArray(items) && items.length === 3 && items.every(i => i && str(i.program) && str(i.title) && str(i.spec))) needs[k].items = items;
+      if (Array.isArray(items) && items.length >= 1 && items.length <= 6 && items.every(i => i && str(i.program) && str(i.title) && str(i.spec))) needs[k].items = items;
       if (data.updated && Number.isFinite(data.updated[k])) updated[k] = data.updated[k];
     });
   } catch (_) {}
@@ -279,13 +314,14 @@ const S = { alt: ['harvest'] };  // pantry food Sacred Heart takes, Second Harve
 
 const ITEMS = [
   // --- Food pantry ---
+  A('Canned Goods', 'canned goods|canned food|cans|canned|nonperishable|non perishable|nonperishables|pantry food|groceries|food', 'harvest', 'food', 'Unopened, in-date cans and boxes are always welcome.', H),
   A('Canned Tuna', 'tuna|canned tuna|can of tuna', 'harvest', 'food', 'A top protein request. Pop-top cans packed in water are ideal.', H),
   A('Canned Chicken', 'canned chicken|chicken breast can|can of chicken', 'harvest', 'food', 'High-protein and easy for seniors. Pop-top cans preferred.', H),
   A('Beans', 'beans|black beans|pinto beans|kidney beans|garbanzo|chickpeas|refried beans|canned beans|lentils|dry beans', 'harvest', 'food', 'A pantry staple, canned or dry, any variety, unopened.', H),
   A('Canned Soup & Chili', 'soup|chili|stew|canned soup', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
   A('Canned Vegetables', 'canned vegetables|canned veggies|canned corn|corn|green beans|peas|canned tomatoes|tomato sauce', 'harvest', 'food', 'Low-sodium canned vegetables are especially welcome.', H),
   A('Canned Fruit', 'canned fruit|fruit cups|fruit cup|applesauce|canned peaches|pineapple|mandarin oranges', 'harvest', 'food', 'Fruit packed in juice is preferred over heavy syrup.', H),
-  A('Canned Meat & Fish', 'spam|canned meat|vienna sausage|corned beef|canned salmon|sardines', 'harvest', 'food', 'Shelf-stable proteins are always in demand.', H),
+  A('Canned Meat & Fish', 'spam|canned meat|canned protein|pop top protein|vienna sausage|corned beef|canned salmon|sardines', 'harvest', 'food', 'Shelf-stable proteins are always in demand.', H),
   A('Peanut Butter', 'peanut butter|almond butter|nut butter|sunflower butter', 'harvest', 'food', 'One of the most-requested proteins. Plastic jars only.', H),
   A('Cooking Oil', 'cooking oil|vegetable oil|olive oil|canola oil|oil', 'sacred', 'food', 'Constantly in short supply. Factory-sealed plastic bottles.', S),
   A('Rice', 'rice|brown rice|white rice|jasmine rice', 'harvest', 'food', 'Rice in 1–2 lb bags is easiest for families to carry home.', H),
@@ -311,6 +347,7 @@ const ITEMS = [
   A('Coats & Jackets', 'coat|coats|winter coat|jacket|jackets|parka|raincoat|puffer|windbreaker', 'closet', 'cloth', 'Warm coats are needed most from November through March. Clean, with working zippers.'),
   A('Hoodies & Sweaters', 'hoodie|hoodies|sweatshirt|sweater|sweaters|fleece jacket|cardigan', 'closet', 'cloth', 'Clean, gently used layers are always welcome.'),
   A('Pants & Jeans', 'pants|jeans|trousers|slacks|shorts|leggings|sweatpants|work pants', 'closet', 'cloth', 'Jeans and work pants, especially men\'s sizes, move fastest.'),
+  A('Clothes', 'clothes|clothing|outfits|apparel|kids clothing|mens clothes|womens clothes', 'closet', 'cloth', 'Clean, gently used clothes in all sizes.'),
   A('Shirts', 'shirt|shirts|t shirt|t shirts|tshirt|tee|blouse|polo|button down|tops', 'closet', 'cloth', 'Clean, gently used shirts in all sizes.'),
   A('Shoes', 'shoes|shoe|sneakers|boots|sandals|work boots|heels|cleats', 'closet', 'cloth', 'Gently worn shoes with tread left. Tie or band each pair together.'),
   A('New Socks', 'socks|sock', 'closet', 'new', 'Socks are the most requested clothing item at shelters, and they must be brand new.'),
@@ -347,6 +384,7 @@ const ITEMS = [
   A('Pet Bowls', 'pet bowls|dog bowl|dog bowls|cat bowl|cat bowls|stainless steel bowls|stainless bowls|bowls', 'humane', 'petgear', 'Stainless steel bowls are preferred because they sanitize easily.'),
   A('Cat Litter', 'litter|cat litter|kitty litter|clumping litter', 'humane', 'petfood', 'Unscented clumping litter is used most.'),
   A('Pet Toys', 'dog toy|dog toys|cat toy|cat toys|pet toy|pet toys|chew toy|chew toys|kong|tennis balls|rope toy', 'humane', 'pettoy', 'Durable rubber toys and tennis balls are great. No plush toys with stuffing.'),
+  A('Pet Supplies', 'pet supplies|pet items|pet stuff|dog supplies|cat supplies', 'humane', 'petgear', 'Clean, working pet supplies are welcome.'),
   A('Pet Beds', 'pet bed|pet beds|dog bed|dog beds|cat bed|cat beds', 'humane', 'petgear', 'Clean pet beds with washable covers.'),
   A('Puppy Pads', 'puppy pads|pee pads|training pads', 'humane', 'petfood', 'Unopened packs are used every day in the puppy rooms.'),
   A('Newspaper', 'newspaper|newspapers|shredded paper', 'humane', 'gear', 'Clean newspaper lines kennels and litter areas.'),
@@ -537,7 +575,7 @@ function setTab(name) {
   });
   $('#panel-give').classList.toggle('hidden', name !== 'give');
   $('#panel-needs').classList.toggle('hidden', name !== 'needs');
-  if (name === 'give') focusMap(lastSites, false);
+  if (name === 'give' && map) { map.invalidateSize(); fitMap(); }
 }
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => setTab(t.dataset.tab));
@@ -549,518 +587,632 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 
 /* =====================================================================
-   MAP: a hand-drawn schematic of the South Bay (SVG, no map tiles needed)
+   WHERE THE DONOR STARTS + DRIVING ROUTES
    ===================================================================== */
-let lastSites = [], view = null, mapAnim = 0;
-const KX = Math.cos(37.35 * Math.PI / 180);            // longitude squeeze at this latitude
-const P = (lat, lng) => [lng * KX, -lat];               // project to flat units
-const WORLD = { x0: -122.16 * KX, x1: -121.74 * KX, y0: -37.50, y1: -37.20 };
-const BAY = [[37.50,-122.16],[37.50,-121.93],[37.47,-121.93],[37.455,-121.945],[37.44,-121.965],[37.43,-121.985],[37.425,-122.02],[37.43,-122.06],[37.44,-122.10],[37.455,-122.16]];
-const ROADS = [
-  { name: '101', pts: [[37.43,-122.12],[37.40,-122.06],[37.375,-121.97],[37.36,-121.92],[37.34,-121.87],[37.30,-121.83],[37.22,-121.77]] },
-  { name: '880', pts: [[37.50,-121.93],[37.45,-121.92],[37.40,-121.915],[37.35,-121.915],[37.31,-121.94],[37.27,-121.96],[37.22,-121.98]] },
-  { name: '280', pts: [[37.36,-122.12],[37.33,-122.06],[37.32,-122.00],[37.32,-121.93],[37.33,-121.88],[37.345,-121.84]] },
-  { name: '680', pts: [[37.50,-121.90],[37.44,-121.88],[37.38,-121.85],[37.345,-121.84]] },
-  { name: '85',  pts: [[37.40,-122.08],[37.36,-122.06],[37.30,-122.00],[37.26,-121.92],[37.24,-121.84],[37.22,-121.78]] },
-];
-const CITIES = [
-  ['San Jose', 37.333, -121.89], ['Milpitas', 37.437, -121.895], ['Santa Clara', 37.36, -121.97],
-  ['Sunnyvale', 37.37, -122.035], ['Campbell', 37.287, -121.95], ['Cupertino', 37.32, -122.035], ['Los Gatos', 37.235, -121.965],
-];
+const STARTS = {
+  campbell:   { label: 'Campbell',          lat: 37.2872, lng: -121.9500 },
+  downtown:   { label: 'Downtown San Jose', lat: 37.3382, lng: -121.8863 },
+  north:      { label: 'North San Jose',    lat: 37.3894, lng: -121.9295 },
+  santaclara: { label: 'Santa Clara',       lat: 37.3541, lng: -121.9552 },
+  milpitas:   { label: 'Milpitas',          lat: 37.4323, lng: -121.8996 },
+};
+const START_KEY = 'givelocal-start';
+let startKey = 'campbell', start = { ...STARTS.campbell };
+try { const k = localStorage.getItem(START_KEY); if (k && STARTS[k]) { startKey = k; start = { ...STARTS[k] }; } } catch (_) {}
 
-function fitView(keys) {
-  const pts = (keys.length ? keys : Object.keys(SITES)).map(k => P(SITES[k].lat, SITES[k].lng));
-  let x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0]));
-  let y0 = Math.min(...pts.map(p => p[1])), y1 = Math.max(...pts.map(p => p[1]));
-  const minSpan = 0.06;                                 // never zoom closer than a few miles
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  const w = Math.max(x1 - x0, minSpan), h = Math.max(y1 - y0, minSpan);
-  return { cx, cy, w, h };
+const rad = (d) => d * Math.PI / 180;
+function milesBetween(a, b) {
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.sqrt(h));
 }
-function drawMap(v) {
-  const el = $('#map');
-  const W = el.clientWidth || 300, H = el.clientHeight || 260;
-  // Padding in pixels (wider at the sides for the left/right labels), then scale to fit
-  const padX = 70, padY = 44;
-  const s = Math.min((W - 2 * padX) / v.w, (H - 2 * padY) / v.h);
-  const tx = (x) => (W / 2 + (x - v.cx) * s).toFixed(1);
-  const ty = (y) => (H / 2 + (y - v.cy) * s).toFixed(1);
-  const pt = ([lat, lng]) => { const [x, y] = P(lat, lng); return `${tx(x)},${ty(y)}`; };
-  const roads = ROADS.map(r => `<polyline points="${r.pts.map(pt).join(' ')}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${r.pts.map(pt).join(' ')}" fill="none" stroke="var(--road)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
-  const shields = ROADS.map(r => { const m = r.pts[Math.floor(r.pts.length / 2)]; const [x, y] = pt(m).split(','); return `<g transform="translate(${x},${y})"><rect x="-11" y="-7" width="22" height="14" rx="3" fill="#fff" stroke="#CBB78F"/><text text-anchor="middle" y="3.5" font-size="9" font-weight="700" fill="#7C6A45">${r.name}</text></g>`; }).join('');
-  const cities = CITIES.map(([n, lat, lng]) => { const [x, y] = pt([lat, lng]).split(',').map(Number); const half = n.length * 4.2;
-    if (x - half < 6 || x + half > W - 6 || y < 14 || y > H - 6) return '';   // skip names the frame would cut
-    return `<text x="${x}" y="${y}" text-anchor="middle" font-size="11" font-weight="600" letter-spacing=".06em" fill="#94A3B8">${n.toUpperCase()}</text>`; }).join('');
-  // Screen positions, nudged apart when two pins would overlap (Goodwill and ReStore are 2 miles apart)
-  const pos = {};
-  for (const [k, site] of Object.entries(SITES)) pos[k] = pt([site.lat, site.lng]).split(',').map(Number);
-  const keys = Object.keys(pos);
-  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
-    const a = pos[keys[i]], b = pos[keys[j]], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy), min = 22;
-    if (d < min) { const ux = d ? dx / d : 1, uy = d ? dy / d : 0, push = (min - d) / 2; a[0] -= ux * push; a[1] -= uy * push; b[0] += ux * push; b[1] += uy * push; }
-  }
-  const pins = Object.entries(SITES).sort(([a], [b]) => lastSites.includes(a) - lastSites.includes(b)).map(([k, site]) => {
-    const on = lastSites.includes(k);
-    const [x, y] = pos[k];
-    const fill = on ? (site.partner ? '#B45309' : '#047857') : '#94A3B8';
-    const r = on ? 8 : 5;
-    const tw = site.label.length * 6.3 + 14;
-    let dir = site.dir || 'top';
-    // A side label that would run off the frame drops below its pin instead of covering it
-    if ((dir === 'right' && x + r + 6 + tw > W - 6) || (dir === 'left' && x - r - 6 - tw < 6)) dir = 'below';
-    let lx = dir === 'right' ? x + r + 6 : dir === 'left' ? x - r - 6 - tw : x - tw / 2;
-    let ly = dir === 'below' ? y + r + 6 : dir === 'top' ? y - r - 26 : y - 10;
-    lx = Math.max(6, Math.min(W - tw - 6, lx));          // keep every label fully inside the frame
-    ly = Math.max(6, Math.min(H - 26, ly));
-    return `<g>
-      <circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="#fff" stroke-width="2.5"/>
-      <rect x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" width="${tw.toFixed(1)}" height="20" rx="6" fill="${on ? '#0F172A' : '#fff'}" ${on ? '' : 'stroke="#E2E8F0"'}/>
-      <text x="${(lx + tw / 2).toFixed(1)}" y="${(ly + 14).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="${on ? '#fff' : '#475569'}">${esc(site.label)}</text>
-    </g>`;
-  }).join('');
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of drop-off locations${lastSites.length ? ': ' + lastSites.map(k => SITES[k].label).join(', ') : ''}">
-    <rect width="${W}" height="${H}" fill="var(--land)"/>
-    <polygon points="${BAY.map(pt).join(' ')}" fill="var(--water)"/>
-    ${roads}${shields}${cities}${pins}
-  </svg>`;
+// Before the real route arrives: straight-line distance plus a typical detour factor for city streets
+const estMiles = (site) => milesBetween(start, SITES[site]) * 1.3;
+
+// Real driving routes from the public OSRM server, fetched one at a time and remembered
+const routeDone = new Map(), routePending = new Map();
+let routeQueue = Promise.resolve();
+const routeKey = (site) => `${start.lat.toFixed(4)},${start.lng.toFixed(4)}>${site}`;
+function getRoute(site) {
+  const key = routeKey(site);
+  if (routeDone.has(key)) return Promise.resolve(routeDone.get(key));
+  if (routePending.has(key)) return routePending.get(key);
+  const from = { ...start }, to = SITES[site];
+  const p = (routeQueue = routeQueue.then(async () => {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('route');
+      const r = (await res.json()).routes[0];
+      const out = { ok: true, coords: r.geometry.coordinates.map(([x, y]) => [y, x]), mi: r.distance / 1609.344, min: Math.max(1, Math.round(r.duration / 60)) };
+      routeDone.set(key, out);
+      return out;
+    } catch (_) {
+      // Offline or the route server is busy: a straight dashed line and an estimate instead
+      return { ok: false, coords: [[from.lat, from.lng], [to.lat, to.lng]], mi: milesBetween(from, to) * 1.3 };
+    } finally { routePending.delete(key); }
+  }));
+  routePending.set(key, p);
+  return p;
 }
-function initMap() {
-  view = fitView([]);
-  drawMap(view);
-  if (window.ResizeObserver) new ResizeObserver(() => drawMap(view)).observe($('#map'));
+function distText(site) {
+  const r = routeDone.get(routeKey(site));
+  return r ? `${r.mi.toFixed(1)} mi · ${r.min} min drive from ${start.label}` : `About ${estMiles(site).toFixed(1)} mi from ${start.label}`;
 }
-function focusMap(siteKeys, animate = true) {
-  lastSites = siteKeys;
-  const target = fitView(siteKeys);
-  cancelAnimationFrame(mapAnim);
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!animate || reduce || !view) { view = target; drawMap(view); return; }
-  const from = { ...view }, t0 = performance.now(), dur = 600;
-  const step = (now) => {
-    const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
-    view = { cx: from.cx + (target.cx - from.cx) * e, cy: from.cy + (target.cy - from.cy) * e, w: from.w + (target.w - from.w) * e, h: from.h + (target.h - from.h) * e };
-    drawMap(view);
-    if (t < 1) mapAnim = requestAnimationFrame(step);
-  };
-  mapAnim = requestAnimationFrame(step);
+function updateDistances() {
+  document.querySelectorAll('[data-dist]').forEach(el => { el.textContent = distText(el.dataset.dist); });
 }
 
 /* =====================================================================
-   PILLS
+   MAP (Leaflet + OpenStreetMap)
    ===================================================================== */
-function setPillActive(selector, attr, key) {
-  document.querySelectorAll(selector).forEach(b => {
-    const on = b.dataset[attr] === key;
+let map = null, markers = {}, startMarker = null, routeLine = null, routeSeq = 0;
+let activeSite = null, planSites = [];
+const gmapsDir = (place) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}`;
+const sitePlace = (k) => SITES[k].partner ? `${PARTNERS[k].name}, ${PARTNERS[k].address}` : `${ORGS[k].name}, ${ORGS[k].address}`;
+function openState(o) {
+  const h = todayHours(o);
+  return { open: h.open, detail: h.text.replace(/^(Open|Closed) now · /, '').replace(/^Opens/, 'opens') };
+}
+const openBadge = (o) => {
+  const s = openState(o);
+  return `<span class="inline-flex items-center gap-1 text-[12.5px] font-semibold ${s.open ? 'text-emerald-700' : 'text-slate-500'}">${s.open ? '● Open Now' : '○ Closed'}<span class="font-normal text-slate-500">· ${s.detail}</span></span>`;
+};
+
+function popupHtml(k) {
+  const partner = SITES[k].partner;
+  const name = partner ? PARTNERS[k].name : ORGS[k].name;
+  const addr = partner ? PARTNERS[k].address : ORGS[k].address;
+  const hours = partner
+    ? '<p class="mt-1 text-[12px] text-slate-500">Hours vary, so check before you go.</p>'
+    : `<p class="mt-1 text-[12px] text-slate-600">${hoursLine(ORGS[k])}${k === 'sacred' ? ' (Clothes Closet to 3:30 PM)' : ''}</p><p class="mt-0.5">${openBadge(ORGS[k])}</p>`;
+  return `
+    <div class="font-sans">
+      <p class="text-[14px] font-semibold text-slate-900 leading-snug">${name}</p>
+      <p class="mt-0.5 text-[12px] text-slate-600">${addr}</p>
+      ${hours}
+      <div class="mt-2.5 flex flex-wrap gap-1.5">
+        <button type="button" data-route="${k}" class="h-8 rounded-lg bg-slate-900 px-2.5 text-[12px] font-semibold text-white hover:bg-slate-700">Route from ${esc(start.label)}</button>
+        <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k))}" class="inline-flex items-center h-8 rounded-lg border border-slate-200 px-2.5 text-[12px] font-semibold !text-slate-700 hover:border-slate-400">Google Maps ↗</a>
+      </div>
+    </div>`;
+}
+
+function initMap() {
+  if (!window.L) {
+    $('#map').innerHTML = '<div class="h-full grid place-items-center text-sm text-slate-500 px-6 text-center">The map could not load. The Google Maps buttons still work.</div>';
+    return;
+  }
+  map = L.map('map', { scrollWheelZoom: false }).setView([37.37, -121.91], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map);
+  map.attributionControl.setPrefix(false);
+  for (const k of Object.keys(SITES)) {
+    markers[k] = L.circleMarker([SITES[k].lat, SITES[k].lng], { radius: 6, weight: 2, color: '#fff', fillColor: '#94A3B8', fillOpacity: 1 })
+      .addTo(map)
+      .bindPopup(() => popupHtml(k), { minWidth: 220, maxWidth: 260 });
+  }
+  startMarker = L.circleMarker([start.lat, start.lng], { radius: 8, weight: 3, color: '#fff', fillColor: '#2563EB', fillOpacity: 1 })
+    .addTo(map)
+    .bindPopup(() => `<div class="font-sans"><p class="text-[14px] font-semibold text-slate-900">Starting from ${esc(start.label)}</p><p class="mt-0.5 text-[12px] text-slate-600">Change it with the menu above the map.</p></div>`)
+    .bindTooltip('Start', { permanent: true, direction: 'bottom', offset: [0, 8], className: 'site-tip start' });
+  if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize()).observe($('#map'));
+}
+
+// Active pins are large and labelled; the rest are small and grey (their name shows on hover)
+function styleMarkers() {
+  if (!map) return;
+  for (const [k, m] of Object.entries(markers)) {
+    const on = planSites.includes(k) || k === activeSite;
+    const color = SITES[k].partner ? '#B45309' : '#047857';
+    m.setStyle({ radius: k === activeSite ? 11 : on ? 9 : 6, fillColor: on ? color : '#94A3B8', fillOpacity: on ? 1 : 0.75 });
+    m.unbindTooltip();
+    // Goodwill and ReStore are 2 miles apart, so their labels sit on opposite sides
+    // (and Second Harvest's label goes below its pin, clear of Humane Society's)
+    const dir = k === 'goodwill' ? 'left' : k === 'restore' ? 'right' : k === 'harvest' ? 'bottom' : 'top';
+    const offset = { left: [-10, 0], right: [10, 0], bottom: [0, 9], top: [0, -9] }[dir];
+    m.bindTooltip(SITES[k].label, { permanent: on, direction: dir, offset, className: on ? 'site-tip' : 'site-tip dim' });
+    if (on) m.bringToFront();
+  }
+  startMarker.setLatLng([start.lat, start.lng]).bringToFront();
+}
+// Map fits are instant, not animated: Leaflet's animated zooms can be dropped or finish late
+// (for example in a background tab) and leave the map showing the wrong area.
+let fitTimer = 0;
+function fitMap() {
+  if (!map) return;
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => {
+    const keys = planSites.length ? planSites : Object.keys(SITES);
+    const b = L.latLngBounds([[start.lat, start.lng]]);
+    keys.forEach(k => b.extend([SITES[k].lat, SITES[k].lng]));
+    if (activeSite) b.extend([SITES[activeSite].lat, SITES[activeSite].lng]);
+    if (routeLine) b.extend(routeLine.getBounds());
+    map.stop();
+    // Extra room on the sides where the Goodwill (left) and ReStore (right) labels sit
+    const shown = (k) => planSites.includes(k) || activeSite === k;
+    map.fitBounds(b, { paddingTopLeft: [shown('goodwill') ? 64 : 40, 44], paddingBottomRight: [shown('restore') ? 64 : 40, 40], maxZoom: 13, animate: false });
+  }, 30);
+}
+async function drawRoute() {
+  if (!map) return;
+  const seq = ++routeSeq, chip = $('#routeChip');
+  if (routeLine) { routeLine.remove(); routeLine = null; }
+  if (!activeSite) { chip.hidden = true; fitMap(); return; }
+  const site = activeSite, s = SITES[site], color = s.partner ? '#B45309' : '#047857';
+  const cached = routeDone.get(routeKey(site));
+  if (!cached) {
+    routeLine = L.polyline([[start.lat, start.lng], [s.lat, s.lng]], { color, weight: 3, dashArray: '6 8', opacity: 0.6 }).addTo(map);
+    chip.hidden = false;
+    chip.innerHTML = `<i data-lucide="loader-2" class="h-3.5 w-3.5 spin shrink-0 text-slate-500"></i><span>Finding the route to ${esc(s.label)}…</span>`; icons();
+    fitMap();
+  }
+  const r = cached || await getRoute(site);
+  if (seq !== routeSeq) return;
+  if (routeLine) routeLine.remove();
+  routeLine = L.polyline(r.coords, r.ok ? { color, weight: 5, opacity: 0.9, lineJoin: 'round' } : { color, weight: 3, dashArray: '6 8', opacity: 0.8 }).addTo(map);
+  chip.hidden = false;
+  chip.innerHTML = `<i data-lucide="route" class="h-3.5 w-3.5 shrink-0" style="color:${color}"></i><span>${r.ok
+    ? `${esc(s.label)}: ${r.mi.toFixed(1)} mi · ${r.min} min drive`
+    : `${esc(s.label)}: about ${r.mi.toFixed(1)} mi. Live route unavailable, so a straight line is shown.`}</span>`;
+  icons();
+  styleMarkers();
+  fitMap();
+  updateDistances();
+}
+// Fill in real driving distances for every stop in the plan
+function prefetchDistances() {
+  planSites.forEach(k => getRoute(k).then(r => { if (r.ok) updateDistances(); }));
+}
+function showRoute(site) {
+  if (!SITES[site]) return;
+  activeSite = site;
+  if (map) map.closePopup();
+  markRouteButtons();
+  styleMarkers();
+  drawRoute();
+  const rect = $('#mapPanel').getBoundingClientRect();
+  if (rect.top < 60 || rect.bottom > innerHeight) $('#mapPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function markRouteButtons() {
+  document.querySelectorAll('#resultLeft [data-route]').forEach(b => {
+    const on = b.dataset.route === activeSite;
     b.setAttribute('aria-pressed', on);
-    b.classList.toggle('bg-slate-900', on);
-    b.classList.toggle('border-slate-900', on);
-    b.classList.toggle('text-white', on);
-    b.classList.toggle('bg-white', !on);
-    b.classList.toggle('border-slate-200', !on);
-    b.classList.toggle('text-slate-700', !on);
-    b.classList.toggle('hover:border-slate-400', !on);
+    b.querySelector('span').textContent = on ? 'Route Shown on Map' : 'Show Route on Map';
+    b.classList.toggle('bg-slate-900', on); b.classList.toggle('text-white', on); b.classList.toggle('border-slate-900', on);
+    b.classList.toggle('bg-white', !on); b.classList.toggle('text-slate-800', !on); b.classList.toggle('border-slate-300', !on);
   });
 }
+// One listener covers the buttons in the cards and inside map popups
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-route]');
+  if (b) showRoute(b.dataset.route);
+});
+
+/* --- Starting-point menu --- */
+const startSel = $('#startSel');
+startSel.innerHTML = Object.entries(STARTS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('') + '<option value="gps">📍 Use My GPS</option>';
+startSel.value = startKey;
+function setStart(key, point) {
+  startKey = key; start = { ...point };
+  try { if (STARTS[key]) localStorage.setItem(START_KEY, key); } catch (_) {}
+  startSel.value = key;
+  activeSite = null;      // route to whichever stop is nearest the new starting point
+  render(false);
+}
+startSel.addEventListener('change', () => {
+  const key = startSel.value;
+  if (key !== 'gps') { setStart(key, STARTS[key]); return; }
+  const back = () => { startSel.value = startKey; };
+  if (!navigator.geolocation) { back(); toast('This browser can’t share a location. Pick a city instead.'); return; }
+  toast('Finding your location…');
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      // Rounded to about a block: plenty for a driving route, and kinder to your privacy
+      setStart('gps', { label: 'your location', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) });
+      toast('Using your location as the starting point');
+    },
+    () => { back(); toast('Couldn’t get your location. Still starting from ' + start.label + '.'); },
+    { timeout: 8000, maximumAge: 300000 }
+  );
+});
 
 /* =====================================================================
-   TAB 1: AUTOCOMPLETE SEARCH + TAP-TO-SELECT PILLS
-   Every selected item runs through the rules engine and gets its own card.
+   TAB 1 STATE: one input at a time (pills OR a typed search)
    ===================================================================== */
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const ORG_SHORT = { sacred: 'Sacred Heart', closet: 'Sacred Heart Clothes Closet', harvest: 'Second Harvest', humane: 'Humane Society SV' };
-const street = (org) => ORGS[org].address.split(',')[0];
 // Drop-off orgs for an accepted result: its destination plus any other site that also takes it
 function dropOrgs(r) {
   const list = [r.dest, ...(r.dest === r.item.dest && r.item.alt ? r.item.alt : [])];
   return list.filter((o, i) => list.findIndex(x => ORGS[x].site === ORGS[o].site) === i);
 }
-const GROUP_LABEL = { food: 'Food Pantry', baby: 'Infant & Family', hygiene: 'Hygiene', cloth: 'Clothes Closet', new: 'Clothes Closet', gear: 'Family & School',
-                      petfood: 'Pet Supplies', linen: 'Pet Supplies', petgear: 'Pet Supplies', pettoy: 'Pet Supplies' };
-const categoryOf = (it) => it.kind === 'redirect' ? it.rtype
-  : it.kind === 'reject' ? 'Not accepted' : GROUP_LABEL[it.g];
 
-// The 12 tap-to-select items. q is what the rules engine checks; note is the one-line rule shown.
 const QUICK = [
-  { id: 'canned',   label: 'Canned Food',              icon: 'package',          q: 'canned vegetables', note: 'Unopened, in-date cans are always welcome, and pop-top protein goes fastest.' },
-  { id: 'produce',  label: 'Fresh Produce',            icon: 'apple',            q: 'produce' },
-  { id: 'clothes',  label: 'Coats & Clothes',          icon: 'shirt',            q: 'coat', note: 'Clean, gently used clothes help most, and warm coats are needed through March.' },
-  { id: 'diapers',  label: 'Diapers & Wipes',          icon: 'baby',             q: 'diapers', note: 'A top need, especially sizes 4–6. Clean opened packs are OK if labeled by size.' },
-  { id: 'petfood',  label: 'Pet Food',                 icon: 'bone',             q: 'dog food', note: 'Unopened bags and cans of dog or cat food are used every day.' },
-  { id: 'towels',   label: 'Old Towels & Blankets',    icon: 'bed-double',       q: 'old towels', note: 'Worn towels and blankets become kennel bedding. Just wash them first.' },
-  { id: 'books',    label: 'Kids Books & Backpacks',   icon: 'book-open',        q: 'backpack', note: 'Clean kids\' books and sturdy backpacks help students start the year ready.' },
-  { id: 'shoes',    label: 'Shoes & New Socks',        icon: 'footprints',       q: 'socks', note: 'Gently worn shoes with tread left, plus socks that are brand new in the package.' },
-  { id: 'opened',   label: 'Opened or Expired Food',   icon: 'ban',              q: 'opened cereal', note: 'Pantries can only hand out sealed, in-date food, so these cost volunteers sorting time.' },
-  { id: 'glass',    label: 'Glass Jars',               icon: 'glass-water',      q: 'glass jar' },
-  { id: 'furniture',label: 'Chairs & Furniture',       icon: 'armchair',         q: 'chair' },
-  { id: 'appliance',label: 'Appliances & Electronics', icon: 'microwave',        q: 'microwave', note: 'Food pantries can\'t test or store electrical items, so working ones go to Goodwill instead.' },
+  { id: 'canned',    label: 'Canned Food',              icon: 'package',     q: 'canned vegetables' },
+  { id: 'produce',   label: 'Fresh Produce',            icon: 'apple',       q: 'produce' },
+  { id: 'clothes',   label: 'Coats & Clothes',          icon: 'shirt',       q: 'coat' },
+  { id: 'diapers',   label: 'Diapers & Wipes',          icon: 'baby',        q: 'diapers' },
+  { id: 'petfood',   label: 'Pet Food',                 icon: 'bone',        q: 'dog food' },
+  { id: 'towels',    label: 'Old Towels & Blankets',    icon: 'bed-double',  q: 'old towels' },
+  { id: 'books',     label: 'Kids Books & Backpacks',   icon: 'book-open',   q: 'backpack' },
+  { id: 'shoes',     label: 'Shoes & New Socks',        icon: 'footprints',  q: 'socks' },
+  { id: 'opened',    label: 'Opened or Expired Food',   icon: 'ban',         q: 'opened cereal', why: 'Pantries can only hand out sealed, in-date food, so opened or expired items are thrown away after a volunteer sorts them.' },
+  { id: 'glass',     label: 'Glass Jars',               icon: 'glass-water', q: 'glass jar' },
+  { id: 'furniture', label: 'Chairs & Furniture',       icon: 'armchair',    q: 'chair' },
+  { id: 'appliance', label: 'Appliances & Electronics', icon: 'microwave',   q: 'microwave' },
 ];
+const EXAMPLES = ['winter coats, dog towels, and a wooden chair', 'fresh apples, diapers, and an opened jar of salsa'];
+const pillEntry = (p) => ({ id: `pill:${p.id}`, label: p.label, q: p.q, why: p.why });
 
-// Current selection: { id, label, q, note? }. Canned Food is selected on load.
-let selection = [];
-const pillEntry = (p) => ({ id: `pill:${p.id}`, label: p.label, q: p.q, note: p.note });
+let selection = [pillEntry(QUICK[0])];   // Canned Food on load
+let source = 'pills';                    // 'pills' or 'search'
+let lastAI = false;                      // did Claude sort the current results?
+let pending = '';                        // text being sorted right now
+let searchSeq = 0, searchCtrl = null;
+const input = $('#searchInput');
+const isDefault = () => source === 'pills' && selection.length === 1 && selection[0].id === 'pill:canned';
 
-/* --- Quick pills --- */
+function setBusy(on) {
+  $('#askAI').disabled = on;
+  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="sparkles" class="h-4 w-4"></i>';
+  $('#askAILabel').textContent = on ? 'Sorting…' : 'Ask AI';
+  icons();
+}
+function cancelSearch() {
+  searchSeq++;
+  if (searchCtrl) searchCtrl.abort();
+  pending = '';
+  setBusy(false);
+}
+function resetToDefault() {
+  cancelSearch();
+  source = 'pills'; lastAI = false; activeSite = null;
+  selection = [pillEntry(QUICK[0])];
+  input.value = '';
+  render();
+}
+
+/* --- Pills: toggle on/off, several at once --- */
 $('#quickPills').innerHTML = QUICK.map(p => `
-  <button data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-11 py-2 rounded-xl border px-3 text-left text-[13px] font-medium leading-tight transition">
+  <button type="button" data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-11 py-2 rounded-xl border px-3 text-left text-[13px] font-medium leading-tight active:scale-[0.97] transition">
     <i data-lucide="${p.icon}" class="h-4 w-4 shrink-0"></i><span class="min-w-0">${p.label}</span>
   </button>`).join('');
 $('#quickPills').addEventListener('click', (e) => {
   const b = e.target.closest('[data-quick]');
   if (!b) return;
   const p = QUICK.find(x => x.id === b.dataset.quick), id = `pill:${p.id}`;
+  cancelSearch();
+  if (source !== 'pills') { source = 'pills'; selection = []; lastAI = false; }   // a pill replaces typed results
+  input.value = '';
   selection = selection.some(s => s.id === id) ? selection.filter(s => s.id !== id) : [...selection, pillEntry(p)];
-  closeSuggest();
-  renderSelection();
+  activeSite = null;
+  render();
 });
 
-/* --- Result cards --- */
-const STATUS_UI = {
-  accept:   { icon: 'check',           chip: 'bg-emerald-50 text-emerald-800 border-emerald-200', label: () => 'Accepted' },
-  redirect: { icon: 'corner-up-right', chip: 'bg-amber-50 text-amber-800 border-amber-200',       label: (r) => REDIRECTS[r.item.to].places ? 'Take to Goodwill / ReStore' : 'Other Local Drop-Off' },
-  reject:   { icon: 'x',               chip: 'bg-red-50 text-red-700 border-red-200',             label: () => 'Cannot Donate' },
-  unknown:  { icon: 'help-circle',     chip: 'bg-slate-100 text-slate-600 border-slate-200',      label: () => 'Not sure yet' },
-};
-const statusChip = (r, size = 'text-xs') => {
-  const u = STATUS_UI[r.status];
-  return `<span class="shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${size} font-semibold whitespace-nowrap ${u.chip}"><i data-lucide="${u.icon}" class="h-3 w-3"></i>${esc(u.label(r))}</span>`;
-};
+/* --- Example chips --- */
+$('#examples').innerHTML = EXAMPLES.map((x, i) => `
+  <button type="button" data-example="${i}" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-[12.5px] text-slate-600 hover:border-emerald-500 hover:text-emerald-800 active:scale-[0.98] transition">
+    <span class="font-semibold text-slate-800 whitespace-nowrap">Try example:</span><span class="min-w-0">“${x}”</span>
+  </button>`).join('');
+$('#examples').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-example]');
+  if (!b) return;
+  input.value = EXAMPLES[Number(b.dataset.example)];
+  runSearch(input.value);
+});
 
-function itemCard(entry, r) {
-  let sentence, details = '';
-  if (r.status === 'accept') {
-    sentence = entry.note || r.item.note;
-    details = dropOrgs(r).map(o => {
-      const h = todayHours(ORGS[o]);
-      return `
-        <div class="flex items-start gap-2">
-          <i data-lucide="map-pin" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-400"></i>
-          <div class="min-w-0">
-            <a target="_blank" rel="noopener" href="${directionsUrl(ORGS[o].address)}" class="font-medium text-slate-800 hover:text-emerald-700">${ORGS[o].name} <span class="font-normal text-slate-500">· ${street(o)}</span></a>
-            <p class="${h.open ? 'text-emerald-700' : 'text-slate-500'}">${h.text}</p>
-          </div>
-        </div>`;
-    }).join('');
-    if (r.need && r.need.compatible) details += `<p class="flex items-start gap-2 text-red-700"><i data-lucide="flame" class="h-3.5 w-3.5 mt-0.5 shrink-0"></i>On ${ORG_SHORT[r.need.dropOrg]}'s high-demand list: ${esc(r.need.item.title)}</p>`;
-  } else if (r.status === 'redirect') {
-    const d = REDIRECTS[r.item.to];
-    sentence = entry.note || r.item.why;
-    details = d.places
-      ? d.places.map(p => `
-        <div class="flex items-start gap-2">
-          <i data-lucide="map-pin" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600"></i>
-          <a target="_blank" rel="noopener" href="${directionsUrl(PARTNERS[p].address)}" class="font-medium text-slate-800 hover:text-amber-800">${PARTNERS[p].name} <span class="font-normal text-slate-500">· ${PARTNERS[p].address.split(',')[0]}</span></a>
-        </div>`).join('')
-      : `
-        <div class="flex items-start gap-2">
-          <i data-lucide="corner-up-right" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600"></i>
-          <div><p class="font-medium text-slate-800">${d.name}</p>
-            <a target="_blank" rel="noopener" href="${searchUrl(d.query)}" class="inline-flex items-center gap-0.5 font-medium text-amber-800 hover:underline">Find the nearest location<i data-lucide="arrow-up-right" class="h-3 w-3"></i></a></div>
-        </div>`;
-  } else if (r.status === 'reject') {
-    const never = r.item && r.item.kind === 'reject';
-    sentence = entry.note || (never ? r.item.why : r.red.why);
-    const instead = never ? r.item.instead : (r.red.instead || r.red.c.instead);
-    details = instead ? `<p class="flex items-start gap-2 text-slate-600"><i data-lucide="lightbulb" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500"></i>Instead: ${entry.ai ? esc(instead) : instead}</p>` : '';
-  } else {
-    sentence = 'We don\'t know this one yet. Try a simpler word, like “coat”, “rice” or “dog food”.';
-  }
-  return `
-    <div class="fade-up rounded-xl border border-slate-200 p-4">
-      <div class="flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <p class="font-semibold leading-snug">${esc(entry.label)}</p>
-          ${entry.ai ? '<span class="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
-        </div>
-        ${statusChip(r)}
-      </div>
-      <p class="mt-1 text-[13px] text-slate-600 leading-relaxed">${entry.ai ? esc(sentence) : sentence}</p>
-      ${details ? `<div class="mt-3 space-y-2 text-[13px]">${details}</div>` : ''}
-    </div>`;
-}
-
-function renderSelection() {
-  // Pills reflect the selection
-  document.querySelectorAll('.quick-btn').forEach(b => {
-    const on = selection.some(s => s.id === `pill:${b.dataset.quick}`);
-    b.setAttribute('aria-pressed', on);
-    b.classList.toggle('bg-slate-900', on);
-    b.classList.toggle('border-slate-900', on);
-    b.classList.toggle('text-white', on);
-    b.classList.toggle('bg-white', !on);
-    b.classList.toggle('border-slate-200', !on);
-    b.classList.toggle('text-slate-700', !on);
-    b.classList.toggle('hover:border-slate-400', !on);
-  });
-  // "Selected:" line with removable chips
+/* --- Selected chips + Clear all --- */
+function renderBar() {
+  const x = '<i data-lucide="x" class="h-3 w-3"></i>';
   $('#selectionBar').innerHTML = selection.length ? `
     <span class="text-slate-500">Selected:</span>
     ${selection.map(s => `
       <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 pl-2.5 pr-1 py-0.5 text-[13px] text-slate-700">${esc(s.label)}
-        <button data-unselect="${esc(s.id)}" class="h-5 w-5 grid place-items-center rounded-full hover:bg-slate-200 text-slate-500" aria-label="Remove ${esc(s.label)}"><i data-lucide="x" class="h-3 w-3"></i></button>
+        <button type="button" data-unselect="${esc(s.id)}" class="h-5 w-5 grid place-items-center rounded-full hover:bg-slate-300 text-slate-500" aria-label="Remove ${esc(s.label)}">${x}</button>
       </span>`).join('')}
-    ${selection.length > 1 ? '<button id="clearSel" class="ml-1 text-[13px] text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-800">Clear selection</button>' : ''}` : '';
-
-  // One card per selected item
-  const pendingCard = aiPending ? `
-    <div class="rounded-xl border border-dashed border-violet-300 bg-violet-50/50 p-4 flex items-center gap-3" role="status">
-      <i data-lucide="loader-2" class="h-4 w-4 text-violet-600 spin shrink-0"></i>
-      <p class="text-[13px] text-violet-900 min-w-0">Claude is sorting <span class="font-semibold">“${esc(aiPending.length > 60 ? aiPending.slice(0, 57) + '…' : aiPending)}”</span></p>
-    </div>` : '';
-  if (!selection.length && !aiPending) {
-    $('#resultLeft').innerHTML = `
-      <div class="fade-up h-full min-h-[200px] grid place-items-center text-center">
-        <div><i data-lucide="mouse-pointer-click" class="h-6 w-6 mx-auto text-slate-300"></i>
-          <p class="mt-2 text-slate-500">Tap an item above, or search, to see where it goes.</p></div>
-      </div>`;
-    icons(); focusMap([]); return;
-  }
-  const results = selection.map(e => ({ e, r: e.ai ? e.r : analyze(e.q) }));
-  const sites = new Set();
-  results.forEach(({ r }) => {
-    if (r.status === 'accept') dropOrgs(r).forEach(o => sites.add(ORGS[o].site));
-    if (r.status === 'redirect') (REDIRECTS[r.item.to].places || []).forEach(p => sites.add(p));
-  });
-  $('#resultLeft').innerHTML = `
-    <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-400">${selection.length <= 1 ? 'Where it goes' : `${selection.length} items · where each goes`}</p>
-    <div class="mt-3 space-y-3">${pendingCard}${results.map(({ e, r }) => itemCard(e, r)).join('')}</div>`;
-  icons();
-  focusMap([...sites]);
+    ${isDefault() ? '' : `<button type="button" data-reset class="ml-1 inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-0.5 text-[13px] font-medium text-slate-700 hover:border-slate-500 active:scale-[0.97] transition">Clear all ${x}</button>`}` : '';
 }
-// Kept for Staff Demo: refresh results when published needs change
-const runSearch = renderSelection;
-
 $('#selectionBar').addEventListener('click', (e) => {
-  const x = e.target.closest('[data-unselect]');
-  if (x) { selection = selection.filter(s => s.id !== x.dataset.unselect); renderSelection(); return; }
-  if (e.target.closest('#clearSel')) { selection = []; renderSelection(); }
+  const u = e.target.closest('[data-unselect]');
+  if (u) { selection = selection.filter(s => s.id !== u.dataset.unselect); activeSite = null; render(); }
 });
-
-/* --- Autocomplete combobox --- */
-const setPlaceholder = () => { $('#searchInput').placeholder = innerWidth < 520 ? 'Search or list items…' : 'Search 80+ items, or list a few…'; };
-setPlaceholder(); addEventListener('resize', setPlaceholder);
-const input = $('#searchInput'), box = $('#suggestBox'), list = $('#suggestList');
-const POPULAR = ['Beans', 'Coats & Jackets', 'Diapers', 'Dog Food', 'Bath Towels', 'Furniture'];
-const COND_WORDS = new Set(CONDITIONS.flatMap(c => c.kws.filter(k => !k.includes(' '))));
-let rows = [], active = -1, navigated = false;
-
-function suggest(raw) {
-  const text = norm(raw);
-  if (!text) return { head: 'Popular items', rows: POPULAR.map(n => ITEMS.find(i => i.name === n)).map(it => makeRow(it, '')) };
-  const words = text.split(' ');
-  const prefix = words.filter(w => COND_WORDS.has(w)).join(' ');   // e.g. "opened"
-  const rest = words.filter(w => !COND_WORDS.has(w)).join(' ');
-  const out = [];
-  if (rest) {
-    // Best match per item. Rows show the word that matched ("Chair", "Chickpeas"), not just the group name.
-    const scored = [];
-    for (const it of ITEMS) {
-      const name = norm(it.name);
-      let best = null;
-      const consider = (s, ki) => { const len = ki < 0 ? it.name.length : it.rawKws[ki].length; if (!best || s > best.s || (s === best.s && len < best.len)) best = { s, ki, len }; };
-      if (name.startsWith(rest)) consider(4, -1);
-      it.kws.forEach((k, ki) => {
-        if (k.startsWith(rest)) consider(3, ki);
-        else if (k.split(' ').some(w => w.startsWith(rest))) consider(2, ki);
-        else if (rest.length >= 3 && k.includes(rest)) consider(1, ki);
-      });
-      if (best) scored.push({ ...best, it });
-    }
-    scored.sort((a, b) => b.s - a.s || a.len - b.len);
-    for (const m of scored) {
-      const row = makeRow(m.it, prefix, m.ki);
-      // With a condition word, only list items that word actually affects ("opened cereal", not "opened grocery bags")
-      if (prefix && !row.r.conds.length) continue;
-      out.push(row);
-      if (out.length === 6) break;
-    }
-  }
-  // A typed phrase the engine understands but no row covers (e.g. "glass jar") gets its own row
-  if (!rest) return { head: `Now add the item, e.g. “${prefix} cereal”`, rows: [] };
-  if (!out.length && text.length >= 2) {
-    const r = analyze(raw);
-    if (r.status !== 'unknown') out.push({ label: cap(raw.trim()), cat: r.item ? categoryOf(r.item) : r.red.c.label, q: raw.trim(), r });
-  }
-  return { head: out.length ? (prefix ? `Checking “${prefix}” items` : 'Matching items') : 'No matches yet. Try another word', rows: out.slice(0, 6) };
-}
-function makeRow(it, prefix, ki = -1) {
-  const base = ki >= 0 ? it.rawKws[ki] : it.name;
-  const q = `${prefix} ${ki >= 0 ? it.kws[ki] : it.kws[0]}`.trim();
-  const label = prefix ? `${cap(prefix)} ${base.toLowerCase()}` : cap(base);
-  const cat = categoryOf(it);
-  return { label, cat, q, r: analyze(q) };
-}
-function renderSuggest() {
-  const s = suggest(input.value);
-  rows = s.rows; active = rows.length ? 0 : -1; navigated = false;
-  $('#suggestHead').textContent = s.head;
-  list.innerHTML = rows.map((row, i) => `
-    <li id="opt-${i}" role="option" data-i="${i}" aria-selected="${i === active}"
-        class="opt flex items-center justify-between gap-3 px-4 py-2.5 cursor-pointer ${i === active ? 'bg-slate-50' : ''} hover:bg-slate-50">
-      <div class="min-w-0">
-        <p class="text-sm font-medium truncate">${esc(row.label)}</p>
-        <p class="text-xs text-slate-400 truncate">${esc(row.cat)}</p>
-      </div>
-      ${statusChip(row.r, 'text-[11px]')}
-    </li>`).join('');
-  box.classList.remove('hidden');
-  input.setAttribute('aria-expanded', 'true');
-  input.setAttribute('aria-activedescendant', active >= 0 ? `opt-${active}` : '');
-  icons();
-}
-function closeSuggest() {
-  box.classList.add('hidden');
-  input.setAttribute('aria-expanded', 'false');
-  input.removeAttribute('aria-activedescendant');
-}
-function moveActive(d) {
-  if (!rows.length) return;
-  navigated = true;
-  active = (active + d + rows.length) % rows.length;
-  list.querySelectorAll('.opt').forEach((li, i) => {
-    li.classList.toggle('bg-slate-50', i === active);
-    li.setAttribute('aria-selected', i === active);
-  });
-  input.setAttribute('aria-activedescendant', `opt-${active}`);
-  $(`#opt-${active}`).scrollIntoView({ block: 'nearest' });
-}
-function pick(i) {
-  const row = rows[i];
-  if (!row) return;
-  const id = `q:${norm(row.q)}`;
-  if (!selection.some(s => s.id === id)) selection.push({ id, label: row.label, q: row.q });
-  input.value = '';
-  closeSuggest();
-  // Leave the box so the list can't pop back over the pills; a click or keypress reopens it
-  suppressUntil = Date.now() + 400;
-  input.blur();
-  renderSelection();
-}
-
-let suppressUntil = 0;
-input.addEventListener('focus', () => { if (Date.now() > suppressUntil) renderSuggest(); });
-input.addEventListener('click', () => { if (box.classList.contains('hidden')) renderSuggest(); });
-input.addEventListener('input', renderSuggest);
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowDown') { e.preventDefault(); box.classList.contains('hidden') ? renderSuggest() : moveActive(1); }
-  else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
-  else if (e.key === 'Escape') { closeSuggest(); input.blur(); }
-});
-// Enter: if you arrowed to a row, pick it. Otherwise send the typed text to the AI matcher.
-$('#searchForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const viaButton = e.submitter && e.submitter.id === 'askAI';
-  if (!viaButton && navigated && active >= 0 && !box.classList.contains('hidden')) { pick(active); return; }
-  if (!input.value.trim()) { input.focus(); renderSuggest(); return; }
-  closeSuggest();
-  askAI(input.value);
-});
-
-/* --- AI matcher (via the Worker) with instant local fallback --- */
-const ORG_KEYS = new Set(['sacred', 'closet', 'harvest', 'humane']);
-const AI_STATUSES = new Set(['accept', 'redirect', 'reject']);
-
-// Turn one AI result into the same {status, item, dest} shape the rules engine produces
-function fromAI(x) {
-  if (!x || typeof x.label !== 'string' || !AI_STATUSES.has(x.status)) return null;
-  const label = x.label.trim().slice(0, 60) || 'Item';
-  const reason = typeof x.reason === 'string' ? x.reason.slice(0, 220) : '';
-  let r;
-  if (x.status === 'accept' && ORG_KEYS.has(x.org)) {
-    r = { status: 'accept', dest: x.org, item: { kind: 'accept', dest: x.org }, need: null };
-    // Keep the "on the high-demand list" line when the local engine agrees on the place
-    const local = analyze(label);
-    if (local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[x.org].site) r.need = local.need;
-  } else if (x.status === 'redirect' && Object.hasOwn(REDIRECTS, x.redirect_to)) {
-    r = { status: 'redirect', item: { kind: 'redirect', to: x.redirect_to } };
-  } else if (x.status === 'reject') {
-    r = { status: 'reject', item: { kind: 'reject', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
-  } else return null;
-  return { id: `ai:${norm(label)}`, label, q: label, note: reason, ai: true, r };
-}
-
-// Local engine: split a messy list and match each part (used when AI is off or fails)
-function localEntries(text) {
-  return text.split(/,|;|\n|\band\b|&|\+/i).map(s => s.trim()).filter(Boolean).slice(0, 8).map(part => {
-    let r = analyze(part);
-    let label = cap(part.replace(/^(a|an|the|some|my)\s+/i, ''));
-    if (r.status === 'unknown') {            // a half-typed word like "opened cer" -> best autocomplete row
-      const row = suggest(part).rows[0];
-      if (row) return { id: `q:${norm(row.q)}`, label: row.label, q: row.q };
-    }
-    return { id: `q:${norm(part)}`, label, q: part };
-  });
-}
-
-function addEntries(entries) {
-  for (const en of entries) {
-    selection = selection.filter(s => s.id !== en.id);
-    selection.push(en);
-  }
-}
-
-let aiBusy = false, aiPending = '';
-// AI matching goes through our own serverless function (/api/claude), which holds the API key.
-// Any failure (offline, not deployed yet, no key, slow, bad answer) silently uses the local rules engine.
-const AI_URL = '/api/claude';
-const AI_TIMEOUT_MS = 15000;
-
-async function askAI(raw) {
-  const text = raw.trim().slice(0, 400);
-  if (!text || aiBusy) return;
-  input.value = '';
-  suppressUntil = Date.now() + 400;
-  input.blur();
-  let entries = null;
-  aiBusy = true;
-  aiPending = text;
-  renderSelection();
-  $('#askAI').disabled = true;
-  $('#askAIIcon').innerHTML = '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>';
-  $('#askAILabel').textContent = 'Matching…';
-  icons();
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS);
-    const res = await fetch(AI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    if (res.ok) {
-      const data = await res.json();
-      const got = data && Array.isArray(data.items)
-        ? data.items.slice(0, 8).map(x => fromAI(x) || (x && x.status === 'unknown' && typeof x.label === 'string' && x.label.trim() ? localEntries(x.label)[0] : null)).filter(Boolean)
-        : [];
-      if (got.length) entries = got;
-    }
-  } catch (_) { /* fall through to the local engine */ }
-  aiBusy = false;
-  aiPending = '';
-  $('#askAI').disabled = false;
-  $('#askAIIcon').innerHTML = '<i data-lucide="sparkles" class="h-4 w-4"></i>';
-  $('#askAILabel').textContent = 'Ask AI';
-  addEntries(entries || localEntries(text));
-  renderSelection();
-}
-// Pressing on a row keeps focus in the input (so blur doesn't fire first); the click then picks it
-list.addEventListener('pointerdown', (e) => { if (e.target.closest('[data-i]')) e.preventDefault(); });
-list.addEventListener('mousedown', (e) => { if (e.target.closest('[data-i]')) e.preventDefault(); });
-list.addEventListener('click', (e) => {
-  const li = e.target.closest('[data-i]');
-  if (li) pick(Number(li.dataset.i));
-});
-// Clicking or tapping anywhere outside the search closes it
-document.addEventListener('pointerdown', (e) => { if (!$('#combo').contains(e.target)) closeSuggest(); });
-input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) closeSuggest(); }, 150));
+document.addEventListener('click', (e) => { if (e.target.closest('[data-reset]')) resetToDefault(); });
 
 /* =====================================================================
-   TAB 2: ONE ORGANIZATION AT A TIME
+   MULTI-ITEM PARSER (always available; also the fallback when AI is slow or down)
+   ===================================================================== */
+const KEEP_TOGETHER = ['mac and cheese', 'half and half', 'salt and pepper', 'peanut butter and jelly', 'pots and pans', 'washer and dryer', 'rice and beans'];
+const FILLER = /^(?:i have|i've got|i got|we have|we've got|there is|there are|there's|also|plus|maybe|some|a few|a couple of|a couple|couple of|several|lots of|a lot of|a bunch of|bunch of|my|our|the|an|a|one|two|three|four|five|\d+)\s+/i;
+function splitItems(text) {
+  let t = ` ${text} `;
+  KEEP_TOGETHER.forEach(p => { t = t.replace(new RegExp(p, 'gi'), m => m.replace(/ and /i, '\u0001')); });
+  return t.split(/,|;|\n|\/|&|\+|\band\b|\bplus\b/i)
+    .map(s => {
+      let part = s.replace(/\u0001/g, ' and ').replace(/[.!?"“”]+/g, ' ').replace(/\s+/g, ' ').trim();
+      for (let prev = null; prev !== part; ) { prev = part; part = part.replace(FILLER, ''); }
+      return part;
+    })
+    .filter(p => p.length > 1)
+    .slice(0, 10);
+}
+function localEntries(text) {
+  const seen = new Set();
+  return splitItems(text).map(part => ({ id: `q:${norm(part)}`, label: cap(part).slice(0, 48), q: part }))
+    .filter(en => norm(en.q) && !seen.has(en.id) && seen.add(en.id));
+}
+
+/* --- Each entry becomes one of: accept / redirect / reject / unknown --- */
+function resolve(entry) {
+  const base = { id: entry.id, label: entry.label, ai: !!entry.ai };
+  if (entry.fixed) return { ...base, ...entry.fixed };
+  const r = analyze(entry.q);
+  if (r.status === 'accept') {
+    const okCond = r.conds.find(c => c.ok);
+    return { ...base, kind: 'accept', options: dropOrgs(r), hot: !!(r.need && r.need.compatible), note: okCond ? okCond.why : r.item.note };
+  }
+  if (r.status === 'redirect') return { ...base, kind: 'redirect', to: r.item.to, why: r.item.why };
+  if (r.status === 'reject') {
+    const never = r.item && r.item.kind === 'reject';
+    return { ...base, kind: 'reject', why: entry.why || (never ? r.item.why : r.red.why), instead: never ? r.item.instead : (r.red.instead || r.red.c.instead) };
+  }
+  return { ...base, kind: 'unknown' };
+}
+
+/* --- Claude's answer -> entries. The local rules double-check anything Claude accepts. --- */
+const ORG_KEYS = new Set(['sacred', 'closet', 'harvest', 'humane']);
+function fromAI(x) {
+  if (!x || typeof x.label !== 'string' || !x.label.trim()) return null;
+  const label = x.label.trim().slice(0, 48);
+  const reason = typeof x.reason === 'string' ? x.reason.slice(0, 220) : '';
+  const local = analyze(label);
+  const entry = { id: `ai:${norm(label)}`, label, q: label, ai: true };
+  if (x.status === 'accept' && ORG_KEYS.has(x.org)) {
+    if (local.status === 'reject') return { ...entry, ai: false };            // e.g. "opened cereal": the safety rule wins
+    const hot = local.status === 'accept' && local.need && local.need.compatible && ORGS[local.need.dropOrg].site === ORGS[x.org].site;
+    return { ...entry, fixed: { kind: 'accept', options: [x.org], hot: !!hot, note: reason } };
+  }
+  if (x.status === 'redirect' && Object.hasOwn(REDIRECTS, x.redirect_to)) return { ...entry, fixed: { kind: 'redirect', to: x.redirect_to, why: reason } };
+  if (x.status === 'reject') return { ...entry, fixed: { kind: 'reject', why: reason || 'Local pantries can’t accept this item.', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
+  if (x.status === 'unknown') return { ...entry, ai: false };                 // let the local rules try
+  return null;
+}
+
+const AI_URL = '/api/claude';
+const AI_TIMEOUT_MS = 5500;   // the server gives up at 4 s; this is the outer safety net
+async function runSearch(raw) {
+  const text = raw.trim().slice(0, 400);
+  if (!text) { input.focus(); return; }
+  cancelSearch();
+  const seq = searchSeq, ctrl = new AbortController();
+  searchCtrl = ctrl;
+  source = 'search'; selection = []; lastAI = false; activeSite = null;   // typed search replaces any pills
+  pending = text;
+  setBusy(true);
+  render();
+  let entries = null;
+  const timer = setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS);
+  try {
+    const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: ctrl.signal });
+    if (res.ok) {
+      const data = await res.json();
+      const seen = new Set();
+      const got = (data && Array.isArray(data.items) ? data.items : []).slice(0, 8).map(fromAI)
+        .filter(en => en && !seen.has(en.id) && seen.add(en.id));
+      if (got.length) entries = got;
+    }
+  } catch (_) { /* slow, offline or not deployed: the local parser answers */ }
+  clearTimeout(timer);
+  if (seq !== searchSeq) return;          // a newer search or a pill tap took over
+  pending = '';
+  setBusy(false);
+  lastAI = !!entries && entries.some(en => en.ai);
+  selection = entries || localEntries(text);
+  if (!selection.length) selection = [{ id: `q:${norm(text) || 'item'}`, label: cap(text).slice(0, 48), q: text }];
+  render();
+}
+$('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); runSearch(input.value); });
+const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Type what you have…' : 'Type what you have, e.g. “two coats and a lamp”'; };
+setPlaceholder(); addEventListener('resize', setPlaceholder);
+
+/* =====================================================================
+   TRIP PLAN: items grouped by where they go
+   ===================================================================== */
+const HOW = {
+  sacred: 'Pull into the donation alley off S. 1st St; volunteers help unload from your trunk.',
+  closet: 'Use the S. 1st St donation alley and ask for the Clothes Closet; keep clothes clean and dry in tied bags.',
+  mixed: 'Use the S. 1st St donation alley; hand over clothes in tied bags, separate from food and supplies.',
+  harvest: 'Follow the signs to the warehouse donation dock and ring the bell; staff bring a cart to your car.',
+  humane: 'Park in the front lot; the donation bin is just left of the main entrance.',
+};
+function buildPlan(items) {
+  const stops = new Map();   // site -> { site, orgs:Set, items:[] }
+  const put = (org, it) => {
+    const site = ORGS[org].site;
+    if (!stops.has(site)) stops.set(site, { site, orgs: new Set(), items: [] });
+    const s = stops.get(site); s.orgs.add(org); s.items.push(it);
+  };
+  const accepted = items.filter(i => i.kind === 'accept');
+  accepted.filter(i => i.options.length === 1).forEach(i => put(i.options[0], i));
+  // Items two places accept: join a stop you're already making, otherwise go to the nearer one
+  accepted.filter(i => i.options.length > 1).forEach(i => {
+    const joined = i.options.find(o => stops.has(ORGS[o].site));
+    put(joined || [...i.options].sort((a, b) => estMiles(ORGS[a].site) - estMiles(ORGS[b].site))[0], i);
+  });
+  const resale = items.filter(i => i.kind === 'redirect' && REDIRECTS[i.to].places);
+  const other = new Map();
+  items.filter(i => i.kind === 'redirect' && !REDIRECTS[i.to].places).forEach(i => { if (!other.has(i.to)) other.set(i.to, []); other.get(i.to).push(i); });
+  return {
+    stops: [...stops.values()].sort((a, b) => estMiles(a.site) - estMiles(b.site)),
+    resale,
+    resalePlaces: ['restore', 'goodwill'].filter(p => resale.some(i => REDIRECTS[i.to].places.includes(p))).sort((a, b) => estMiles(a) - estMiles(b)),
+    other: [...other.entries()],
+    rejects: items.filter(i => i.kind === 'reject'),
+    unknown: items.filter(i => i.kind === 'unknown'),
+  };
+}
+
+const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${i.hot ? '<i data-lucide="flame" class="h-3 w-3 text-red-600"></i>' : ''}${esc(i.label)}</span>`;
+const routeBtn = (site) => `<button type="button" data-route="${site}" aria-pressed="false" class="inline-flex items-center gap-1.5 h-9 rounded-lg border px-3 text-[13px] font-semibold active:scale-[0.97] transition"><i data-lucide="route" class="h-3.5 w-3.5"></i><span>Show Route on Map</span></button>`;
+const gmapsBtn = (site) => `<a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(site))}" class="inline-flex items-center gap-1 h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>`;
+
+function stopCard(s, n) {
+  const orgs = [...s.orgs];
+  const org = orgs.includes('closet') ? 'closet' : orgs[0];          // the Clothes Closet closes earliest
+  const how = s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
+  const hot = s.items.some(i => i.hot);
+  return `
+    <article class="rounded-2xl border border-emerald-300 bg-white shadow-sm overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 bg-emerald-50 border-b border-emerald-200">
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-emerald-800"><span class="h-5 w-5 grid place-items-center rounded-full bg-emerald-700 text-white text-[11px]">${n}</span>Drop-off stop</p>
+        ${openBadge(ORGS[org])}
+      </div>
+      <div class="p-4">
+        <h3 class="text-[17px] font-semibold leading-snug">${ORGS[s.site].name}</h3>
+        <p class="mt-0.5 text-[13px] text-slate-500">${ORGS[s.site].address.replace(/, CA \d+$/, '')} · <span data-dist="${s.site}">${distText(s.site)}</span></p>
+        <div class="mt-3 flex flex-wrap gap-1.5">${s.items.map(i => tag(i, 'border-emerald-200 bg-emerald-50 text-emerald-900')).join('')}</div>
+        ${hot ? '<p class="mt-2 flex items-center gap-1.5 text-[12.5px] text-red-700"><i data-lucide="flame" class="h-3.5 w-3.5"></i>On this organization’s high-demand list right now</p>' : ''}
+        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">${how}</p>
+        <div class="mt-3.5 flex flex-wrap gap-2">${routeBtn(s.site)}${gmapsBtn(s.site)}</div>
+      </div>
+    </article>`;
+}
+function resaleCard(plan) {
+  const takes = (p) => plan.resale.filter(i => REDIRECTS[i.to].places.includes(p));
+  return `
+    <article class="rounded-2xl border border-amber-300 bg-white shadow-sm overflow-hidden">
+      <div class="flex items-center justify-between gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-200">
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-amber-800"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Take to Goodwill / ReStore</p>
+      </div>
+      <div class="p-4">
+        <div class="flex flex-wrap gap-1.5">${plan.resale.map(i => tag(i, 'border-amber-200 bg-amber-50 text-amber-900')).join('')}</div>
+        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">Food pantries have no space to store or test furniture, appliances or electronics, but these stores resell them if they’re clean and working.</p>
+        <div class="mt-3 space-y-3">
+          ${plan.resalePlaces.map(p => {
+            const t = takes(p), partial = t.length < plan.resale.length;
+            return `
+            <div class="rounded-xl border border-slate-200 p-3">
+              <p class="text-[15px] font-semibold leading-snug">${PARTNERS[p].name}</p>
+              <p class="mt-0.5 text-[13px] text-slate-500">${PARTNERS[p].address.replace(/, CA$/, '')} · <span data-dist="${p}">${distText(p)}</span></p>
+              ${partial ? `<p class="mt-1 text-[12.5px] text-slate-600">Takes: ${t.map(i => esc(i.label)).join(', ')}</p>` : ''}
+              <div class="mt-2.5 flex flex-wrap gap-2">${routeBtn(p)}${gmapsBtn(p)}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </article>`;
+}
+function otherCard([to, list]) {
+  const d = REDIRECTS[to];
+  return `
+    <article class="rounded-2xl border border-amber-300 bg-white shadow-sm overflow-hidden">
+      <div class="px-4 py-2.5 bg-amber-50 border-b border-amber-200">
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-amber-800"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Other local drop-off</p>
+      </div>
+      <div class="p-4">
+        <div class="flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-amber-200 bg-amber-50 text-amber-900')).join('')}</div>
+        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">${esc(list[0].why)}</p>
+        <p class="mt-2 text-[14px] font-semibold">${d.name}</p>
+        <div class="mt-2.5"><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.query)}" class="inline-flex items-center gap-1 h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Find the nearest one in Google Maps<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
+      </div>
+    </article>`;
+}
+function rejectCard(list) {
+  return `
+    <article class="rounded-2xl border border-red-300 bg-white shadow-sm overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-red-50 border-b border-red-200">
+        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-red-800"><i data-lucide="house" class="h-4 w-4"></i>Keep at home or recycle</p>
+        <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-white px-2 py-0.5 text-[12px] font-semibold text-red-700"><i data-lucide="x" class="h-3 w-3"></i>Cannot Donate</span>
+      </div>
+      <ul class="p-4 space-y-3.5">
+        ${list.map(i => `
+          <li>
+            <p class="text-[14.5px] font-semibold">${esc(i.label)}</p>
+            <p class="mt-0.5 text-[13.5px] text-slate-700 leading-relaxed">${i.ai ? esc(i.why) : i.why}</p>
+            ${i.instead ? `<p class="mt-1 flex items-start gap-1.5 text-[13px] text-slate-600"><i data-lucide="lightbulb" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500"></i><span>Instead: ${i.ai ? esc(i.instead) : i.instead}</span></p>` : ''}
+          </li>`).join('')}
+      </ul>
+    </article>`;
+}
+function unknownCard(list) {
+  return `
+    <article class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4">
+      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-600"><i data-lucide="circle-help" class="h-4 w-4"></i>Not sure about these</p>
+      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-slate-200 bg-slate-50 text-slate-700')).join('')}</div>
+      <p class="mt-2.5 text-[13.5px] text-slate-600 leading-relaxed">Try a simpler word, like “coat”, “rice” or “dog food”, or call the organization to ask.</p>
+    </article>`;
+}
+
+function renderPlan(plan, animate) {
+  const left = $('#resultLeft');
+  if (pending) {
+    left.innerHTML = `
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5" role="status">
+        <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>
+        <div class="mt-4 space-y-3 animate-pulse">
+          <div class="h-4 w-2/5 rounded bg-slate-200"></div>
+          <div class="flex gap-2"><div class="h-7 w-24 rounded-full bg-slate-200"></div><div class="h-7 w-28 rounded-full bg-slate-200"></div><div class="h-7 w-20 rounded-full bg-slate-200"></div></div>
+          <div class="h-3.5 w-11/12 rounded bg-slate-200"></div>
+          <div class="h-9 w-56 rounded-lg bg-slate-200"></div>
+        </div>
+      </div>`;
+    icons(); return;
+  }
+  if (!selection.length) {
+    left.innerHTML = `
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center">
+        <i data-lucide="mouse-pointer-click" class="h-6 w-6 mx-auto text-slate-400"></i>
+        <p class="mt-2 text-slate-600">Tap an item above, or type what you have, to plan your drop-off.</p>
+        <button type="button" data-reset class="mt-4 inline-flex items-center h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Start with Canned Food</button>
+      </div>`;
+    icons(); return;
+  }
+  const stopCount = plan.stops.length + (plan.resale.length ? 1 : 0) + plan.other.length;
+  const n = selection.length;
+  const summary = `${n} item${n === 1 ? '' : 's'} · ${stopCount ? `${stopCount} stop${stopCount === 1 ? '' : 's'}` : 'nothing to drop off'}`;
+  left.innerHTML = `
+    <div class="${animate ? 'fade-up' : ''}">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Your trip plan · ${summary}</p>
+        ${lastAI && source === 'search' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
+      </div>
+      <div class="mt-2.5 space-y-3">
+        ${plan.stops.map((s, i) => stopCard(s, i + 1)).join('')}
+        ${plan.resale.length ? resaleCard(plan) : ''}
+        ${plan.other.map(otherCard).join('')}
+        ${plan.rejects.length ? rejectCard(plan.rejects) : ''}
+        ${plan.unknown.length ? unknownCard(plan.unknown) : ''}
+      </div>
+    </div>`;
+  icons();
+  markRouteButtons();
+}
+
+/* --- One render for everything on Tab 1 --- */
+function render(animate = true) {
+  document.querySelectorAll('.quick-btn').forEach(b => {
+    const on = source === 'pills' && selection.some(s => s.id === `pill:${b.dataset.quick}`);
+    b.setAttribute('aria-pressed', on);
+    b.classList.toggle('bg-slate-900', on); b.classList.toggle('border-slate-900', on); b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
+  });
+  renderBar();
+  const plan = buildPlan(selection.map(resolve));
+  planSites = [...plan.stops.map(s => s.site), ...plan.resalePlaces];
+  // Keep the route the donor picked if that stop is still in the plan; otherwise route to the first stop
+  if (pending) activeSite = null;
+  else if (!planSites.includes(activeSite)) activeSite = planSites[0] || null;
+  renderPlan(plan, animate);
+  styleMarkers();
+  drawRoute();
+  prefetchDistances();
+}
+
+/* =====================================================================
+   TAB 2: WHAT EACH ORGANIZATION NEEDS (every need is tappable)
    ===================================================================== */
 $('#orgBtns').innerHTML = NEED_ORGS.map(k => `
-  <button data-org="${k}" aria-pressed="false" class="org-btn inline-flex items-center rounded-full border px-2.5 py-2 text-[11.5px] font-medium whitespace-nowrap transition">${ORGS[k].name}</button>`).join('');
+  <button type="button" data-org="${k}" aria-pressed="false" class="org-btn inline-flex items-center rounded-full border px-3 py-2 text-[12.5px] font-medium whitespace-nowrap active:scale-[0.97] transition">${ORGS[k].name}</button>`).join('');
 $('#orgBtns').addEventListener('click', (e) => {
   const b = e.target.closest('[data-org]');
   if (!b) return;
@@ -1068,56 +1220,63 @@ $('#orgBtns').addEventListener('click', (e) => {
   renderNeedCard();
 });
 
-const bullets = (list, dot) => `<ul class="mt-2 space-y-1">${list.map(x => `
-  <li class="flex items-start gap-2 text-[13px] leading-snug"><span class="mt-[7px] h-1 w-1 rounded-full shrink-0 ${dot}"></span>${esc(x)}</li>`).join('')}</ul>`;
-
 function renderNeedCard() {
-  setPillActive('.org-btn', 'org', selectedOrg);
+  document.querySelectorAll('.org-btn').forEach(b => {
+    const on = b.dataset.org === selectedOrg;
+    b.setAttribute('aria-pressed', on);
+    b.classList.toggle('bg-slate-900', on); b.classList.toggle('border-slate-900', on); b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
+  });
   const o = ORGS[selectedOrg], n = needs[selectedOrg];
-  const h = todayHours(o);
   $('#needCard').innerHTML = `
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-6 pb-2">
+      <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0">
             <h2 class="text-xl font-semibold tracking-tight">${o.name}</h2>
-            <p class="mt-0.5 text-xs text-slate-400">Last updated ${ago(updated[selectedOrg])}</p>
+            <p class="mt-0.5 text-xs text-slate-500">Last updated ${ago(updated[selectedOrg])} · ${openBadge(o)}</p>
           </div>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-sm font-semibold">
-            <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>Published High-Demand Needs
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-[13px] font-semibold">
+            <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>High-Demand Needs
           </span>
         </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
-          ${n.items.map(it => `
-            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60">
-              <span class="inline-block rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600">${esc(it.program)}</span>
-              <p class="mt-2.5 text-[15px] font-bold leading-snug">${esc(it.title)}</p>
-              <p class="mt-1.5 text-[13px] text-slate-600 leading-relaxed">${esc(it.spec)}</p>
-            </div>`).join('')}
+        <p class="mt-4 text-[13px] text-slate-500">Tap a need to see where to drop it off and get a route.</p>
+        <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          ${n.items.map((it, i) => `
+            <button type="button" data-need="${i}" class="group text-left p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-[0.98] transition">
+              <span class="flex items-center gap-1.5">
+                <span class="inline-block rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600">${esc(it.program)}</span>
+                ${it.added ? '<span class="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-800">New</span>' : ''}
+              </span>
+              <span class="block mt-2.5 text-[15px] font-bold leading-snug">${esc(it.title)}</span>
+              <span class="block mt-1.5 text-[13px] text-slate-600 leading-relaxed">${esc(it.spec)}</span>
+              <span class="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-emerald-700 group-hover:text-emerald-800">Plan this drop-off<i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></span>
+            </button>`).join('')}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 my-4">
-          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 text-emerald-900">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><i data-lucide="check" class="h-4 w-4"></i>Everyday Staples Also Accepted</p>
-            ${bullets(n.staples, 'bg-emerald-600')}
+        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5">
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><i data-lucide="check" class="h-4 w-4"></i>Everyday staples also accepted</p>
+            <div class="mt-2.5 flex flex-wrap gap-1.5">
+              ${n.staples.map((x, i) => `<button type="button" data-staple="${i}" class="rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-[12.5px] font-medium text-emerald-900 hover:bg-emerald-100 active:scale-[0.97] transition">${esc(x)}</button>`).join('')}
+            </div>
           </div>
           <div class="bg-rose-50/60 border border-rose-200 rounded-xl p-3.5 text-rose-900">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-800"><i data-lucide="x" class="h-4 w-4"></i>Please Do Not Bring</p>
-            ${bullets(n.doNot, 'bg-rose-500')}
+            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-800"><i data-lucide="x" class="h-4 w-4"></i>Please do not bring</p>
+            <ul class="mt-2 space-y-1">${n.doNot.map(x => `<li class="flex items-start gap-2 text-[13px] leading-snug"><span class="mt-[7px] h-1 w-1 rounded-full shrink-0 bg-rose-500"></span>${esc(x)}</li>`).join('')}</ul>
           </div>
         </div>
       </div>
 
-      <div class="px-6 py-5 bg-slate-50 border-t border-slate-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+      <div class="px-5 sm:px-6 py-4 bg-slate-50 border-t border-slate-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div class="flex items-start gap-2">
           <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
           <div><p class="text-slate-800">${o.address}</p>
-            <a target="_blank" rel="noopener" href="${directionsUrl(o.address)}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
+            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site))}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
         </div>
         <div class="flex items-start gap-2">
           <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
-          <div><p class="text-slate-800">${hoursLine(o)}</p><p class="text-[13px] ${h.open ? 'text-emerald-700' : 'text-slate-500'}">${h.text}</p></div>
+          <p class="text-slate-800">${hoursLine(o)}</p>
         </div>
         <div class="sm:col-span-2 flex items-start gap-2">
           <i data-lucide="car" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
@@ -1127,28 +1286,29 @@ function renderNeedCard() {
     </div>`;
   icons();
 }
+// Tapping a need jumps to Tab 1 with that item selected and routed to this organization
+function planNeed(label, org, note, hot) {
+  cancelSearch();
+  source = 'search'; lastAI = false;
+  input.value = label;
+  selection = [{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }];
+  activeSite = ORGS[org].site;
+  setTab('give');
+  render();
+  scrollTo({ top: 0, behavior: 'smooth' });
+}
+$('#needCard').addEventListener('click', (e) => {
+  const nb = e.target.closest('[data-need]'), sb = e.target.closest('[data-staple]');
+  if (nb) { const it = needs[selectedOrg].items[Number(nb.dataset.need)]; planNeed(it.title, needDropOrg(selectedOrg, it), it.spec, true); }
+  else if (sb) planNeed(needs[selectedOrg].staples[Number(sb.dataset.staple)], selectedOrg, '', false);
+});
 
 /* =====================================================================
-   STAFF DEMO (edits Tab 2 and the high-demand matching in Tab 1)
+   STAFF DEMO: add an urgent need (shows first; Tab 1 flags matching items as high demand)
    ===================================================================== */
 $('#fOrg').innerHTML = NEED_ORGS.map(k => `<option value="${k}">${ORGS[k].name}</option>`).join('');
-const inputCls = 'w-full rounded-lg border border-slate-200 px-3 h-9 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100';
-function fillStaffForm() {
-  const n = needs[$('#fOrg').value];
-  $('#fItems').innerHTML = n.items.map((it, i) => `
-    <fieldset class="rounded-xl border border-slate-200 p-3.5">
-      <legend class="px-1 text-xs font-semibold text-slate-500">Priority need ${i + 1}</legend>
-      <div class="grid grid-cols-2 gap-2">
-        <input data-field="program" data-i="${i}" maxlength="24" value="${esc(it.program)}" placeholder="Program" aria-label="Program for need ${i + 1}" class="${inputCls}" />
-        <input data-field="title" data-i="${i}" maxlength="40" value="${esc(it.title)}" placeholder="Item" aria-label="Item for need ${i + 1}" class="${inputCls}" />
-        <input data-field="spec" data-i="${i}" maxlength="90" value="${esc(it.spec)}" placeholder="Store spec (sizes, container, rules)" aria-label="Store spec for need ${i + 1}" class="${inputCls} col-span-2" />
-      </div>
-    </fieldset>`).join('');
-  $('#fError').classList.add('hidden');
-}
-$('#fOrg').addEventListener('change', fillStaffForm);
-
 const staffModal = $('#staffModal');
+const MAX_NEEDS = 6;
 function closeStaff() {
   if (staffModal.classList.contains('hidden')) return;
   staffModal.classList.add('hidden');
@@ -1156,35 +1316,35 @@ function closeStaff() {
   $('#staffBtn').focus();
 }
 $('#staffBtn').addEventListener('click', () => {
+  $('#staffForm').reset();
   $('#fOrg').value = selectedOrg;
-  fillStaffForm();
+  $('#fError').hidden = true;
   staffModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   icons();
-  $('#fOrg').focus();
+  $('#fTitle').focus();
 });
 staffModal.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeStaff(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeStaff(); });
-
 $('#staffForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const org = $('#fOrg').value;
-  const val = (f, i) => document.querySelector(`[data-field="${f}"][data-i="${i}"]`).value.trim();
-  const items = [0, 1, 2].map(i => ({ program: val('program', i), title: val('title', i), spec: val('spec', i) }));
-  if (items.some(it => !it.title || !it.program || !it.spec)) {
-    $('#fError').textContent = 'Please fill in the program, item and store spec for all 3 needs.';
-    $('#fError').classList.remove('hidden');
+  const title = $('#fTitle').value.trim(), program = $('#fProgram').value.trim() || 'Urgent Need', spec = $('#fSpec').value.trim() || 'New or unopened, any brand';
+  if (title.length < 2) {
+    $('#fError').textContent = 'Type the item that’s needed, for example “Size 5–6 Diapers”.';
+    $('#fError').hidden = false;
+    $('#fTitle').focus();
     return;
   }
-  needs[org].items = items;
+  needs[org].items = [{ program, title, spec, added: true }, ...needs[org].items].slice(0, MAX_NEEDS);
   updated[org] = Date.now();
   buildNeedIndex();
   saveState();
   closeStaff();
   selectedOrg = org;
   renderNeedCard();
-  renderSelection();   // refresh Tab 1 against the new list
-  toast(`Published needs updated for ${ORGS[org].name}`);
+  render(false);   // Tab 1 picks up the new high-demand flag
+  toast(`“${title}” is now on ${ORGS[org].name}’s list`);
 });
 
 /* =====================================================================
@@ -1201,13 +1361,14 @@ $('#resetDemo').addEventListener('click', (e) => {
     return;
   }
   try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+  clearTimeout(link._t);
   link.dataset.armed = '';
   link.textContent = 'Reset demo data';
   needs = JSON.parse(JSON.stringify(SEED_NEEDS));
   updated = { ...SEED_UPDATED };
   buildNeedIndex();
   renderNeedCard();
-  renderSelection();
+  render(false);
   toast('Demo data reset');
 });
 loadState();
@@ -1215,8 +1376,7 @@ buildNeedIndex();
 initMap();
 renderNeedCard();
 setTab('give');
-selection = [pillEntry(QUICK[0])];   // Canned Food selected on load
-renderSelection();
+render();
 icons();
 </script>
 </body>

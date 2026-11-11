@@ -2,8 +2,10 @@
 // The API key stays on Vercel (Project Settings > Environment Variables > ANTHROPIC_API_KEY).
 // The page falls back to its built-in rules engine on any non-200 answer.
 
-const MODEL = 'claude-haiku-5-5';
+// First choice, then a fallback if the first model is unavailable on this account.
+const MODELS = ['claude-haiku-4-5', 'claude-haiku-5-5'];
 const MAX_INPUT = 400;
+const TIME_LIMIT_MS = 4000;   // total budget, so the page never waits long before using its own rules
 
 const SYSTEM = `You sort donation items for GiveLocal South Bay (San Jose, Campbell, Milpitas).
 The user's message describes things someone wants to donate: one item or a messy list
@@ -73,31 +75,44 @@ export default async function handler(req, res) {
   const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > MAX_INPUT) return res.status(400).json({ error: 'bad_input' });
 
+  const deadline = Date.now() + TIME_LIMIT_MS;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2026-10-21',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        system: SYSTEM,
-        messages: [{ role: 'user', content: text }],
-        output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!r.ok) return res.status(502).json({ error: 'upstream_error', status: r.status });
+    let msg = null, lastStatus = 0;
+    for (const model of MODELS) {
+      const left = deadline - Date.now();
+      if (left < 300) break;
+      // Haiku 4.5 takes no effort setting; Haiku 5.5 answers fastest with thinking off
+      const output_config = { format: { type: 'json_schema', schema: SCHEMA } };
+      const extra = model === 'claude-haiku-5-5' ? { thinking: { type: 'disabled' } } : {};
+      if (model === 'claude-haiku-5-5') output_config.effort = 'low';
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2026-10-21',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1500,
+          system: SYSTEM,
+          messages: [{ role: 'user', content: text }],
+          output_config,
+          ...extra,
+        }),
+        signal: AbortSignal.timeout(left),
+      });
+      if (r.ok) { msg = await r.json(); break; }
+      lastStatus = r.status;
+      if (r.status !== 400 && r.status !== 404) break;   // only a model problem is worth a second try
+    }
+    if (!msg) return res.status(502).json({ error: 'upstream_error', status: lastStatus });
 
-    const msg = await r.json();
-    const block = msg.stop_reason !== 'refusal' && msg.content?.find((b) => b.type === 'text');
+    const block = msg.stop_reason === 'end_turn' && msg.content?.find((b) => b.type === 'text');
     if (!block) return res.status(502).json({ error: 'no_result' });
 
     const data = JSON.parse(block.text);
-    return res.status(200).json({ items: Array.isArray(data.items) ? data.items.slice(0, 8) : [] });
+    return res.status(200).json({ items: Array.isArray(data.items) ? data.items.slice(0, 8) : [], model: msg.model });
   } catch {
     return res.status(502).json({ error: 'upstream_unreachable' });
   }
