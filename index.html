@@ -75,17 +75,17 @@
     </div>
   </nav>
 
-  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-12 sm:pt-14 pb-20">
+  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-9 sm:pt-11 pb-20">
 
     <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">How would you like to donate today?</h1>
 
     <!-- Tabs -->
-    <div role="tablist" class="mt-7 grid grid-cols-2 gap-2 p-1.5 bg-slate-200/70 rounded-2xl mb-7 max-w-3xl">
-      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 transition">
+    <div role="tablist" class="mt-6 grid grid-cols-2 gap-2 p-1.5 bg-slate-200/70 rounded-2xl mb-5 max-w-3xl">
+      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition">
         <span class="block text-[15px] sm:text-base font-semibold">1. I have items to donate</span>
         <span class="block mt-0.5 text-[13px] text-slate-500">Find where they go</span>
       </button>
-      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 transition">
+      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition">
         <span class="block text-[15px] sm:text-base font-semibold">2. See what local pantries need</span>
         <span class="block mt-0.5 text-[13px] text-slate-500">Tap a need to plan the drop-off</span>
       </button>
@@ -95,7 +95,7 @@
     <section id="panel-give" role="tabpanel" aria-labelledby="tab-give">
       <form id="searchForm" autocomplete="off" class="max-w-3xl">
         <label for="searchInput" class="sr-only">Describe what you want to donate</label>
-        <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-5 pr-3 h-16 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
+        <div class="flex items-center gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-5 pr-2.5 h-14 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
           <i data-lucide="search" class="h-5 w-5 text-slate-400 shrink-0"></i>
           <input id="searchInput" type="text" enterkeyhint="search" maxlength="400"
             class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
@@ -104,22 +104,23 @@
           </button>
         </div>
       </form>
-      <div id="examples" class="mt-2.5 flex flex-wrap gap-2 max-w-3xl"></div>
+      <div id="examples" class="mt-2 flex flex-wrap gap-2"></div>
 
-      <p class="mt-6 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
-      <div id="quickPills" class="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"></div>
-      <div id="selectionBar" class="mt-4 min-h-[30px] flex flex-wrap items-center gap-1.5 text-sm"></div>
+      <p class="mt-4 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
+      <div id="quickPills" class="mt-1.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2"></div>
+      <div id="selectionBar" class="mt-3 min-h-[30px] flex flex-wrap items-center gap-1.5 text-sm"></div>
 
+      <div id="tripBanner" class="mt-2"></div>
       <div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
         <div id="resultLeft" class="md:col-span-7 min-w-0" aria-live="polite"></div>
-        <aside id="mapPanel" class="md:col-span-5 md:sticky md:top-20 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <aside id="mapPanel" class="md:col-span-5 md:sticky md:top-[88px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="flex items-center gap-2 px-3.5 py-2.5 border-b border-slate-200">
             <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0"></span>
             <label for="startSel" class="text-[13px] text-slate-600 whitespace-nowrap">Starting from</label>
             <select id="startSel" class="flex-1 min-w-0 h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
           </div>
           <div class="relative isolate">
-            <div id="map" class="h-[300px] md:h-[430px] bg-slate-100"></div>
+            <div id="map" class="h-[320px] md:h-[min(560px,calc(100vh-170px))] bg-slate-100"></div>
           </div>
         </aside>
       </div>
@@ -138,7 +139,7 @@
 
     <footer class="mt-16 text-xs text-slate-400 leading-relaxed max-w-3xl">
       Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go.
-      Map © OpenStreetMap contributors; driving routes from the OSRM demo server.
+      Map tiles © Esri (Esri, HERE, Garmin, OpenStreetMap contributors); driving routes from the OSRM demo server.
       <a href="#" id="resetDemo" class="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600">Reset demo data</a>
     </footer>
   </main>
@@ -668,8 +669,11 @@ function initMap() {
     $('#map').innerHTML = '<div class="h-full grid place-items-center text-sm text-slate-500 px-6 text-center">The map could not load. The Google Maps buttons still work.</div>';
     return;
   }
-  map = L.map('map', { scrollWheelZoom: false }).setView([37.37, -121.91], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map);
+  map = L.map('map', { scrollWheelZoom: false, maxZoom: 16 }).setView([37.37, -121.91], 11);
+  // Light gray basemap so the green route and pins stand out (CARTO's tiles now need an API key)
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+  L.tileLayer(ESRI + 'World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);
+  L.tileLayer(ESRI + 'World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, pane: 'shadowPane' }).addTo(map);
   map.attributionControl.setPrefix(false);
   // Every place has a small grey pin; stops on the trip get a numbered pin instead
   for (const k of Object.keys(SITES)) {
@@ -696,7 +700,9 @@ function fitMap() {
     (trip.stops.length ? trip.stops.map(s => s.site) : Object.keys(SITES)).forEach(k => b.extend([SITES[k].lat, SITES[k].lng]));
     tripLayer.eachLayer(l => { if (l.getBounds) b.extend(l.getBounds()); });
     map.stop();
-    map.fitBounds(b, { padding: [44, 44], maxZoom: 13, animate: false });
+    // 50px all round, plus room for stop labels that sit to the left or right of their pins
+    const side = trip.stops.length ? 110 : 50;
+    map.fitBounds(b, { paddingTopLeft: [side, 50], paddingBottomRight: [side, 50], maxZoom: 13, animate: false });
   }, 30);
 }
 
@@ -820,7 +826,7 @@ async function routeTrip() {
 function updateTripNumbers() {
   const t = totals(trip.stops), n = trip.stops.length, approx = trip.real ? '' : '~';
   const el = $('#tripTotals');
-  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi total (${approx}${t.min} min from ${start.label})${trip.real ? '' : ' · estimate'}`;
+  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi total (${approx}${t.min} min from ${start.label})`;
   trip.stops.forEach((s, i) => {
     const leg = document.querySelector(`[data-leg="${i}"]`);
     if (leg) leg.textContent = `${approx}${s.leg.mi.toFixed(1)} mi · ${approx}${s.leg.min} min from ${i ? siteName(trip.stops[i - 1].site).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '') : start.label}`;
@@ -916,7 +922,7 @@ function resetToDefault() {
 
 /* --- Pills: toggle on/off, several at once --- */
 $('#quickPills').innerHTML = QUICK.map(p => `
-  <button type="button" data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-11 py-2 rounded-xl border px-3 text-left text-[13px] font-medium leading-tight active:scale-[0.97] transition">
+  <button type="button" data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-[38px] py-1.5 rounded-xl border px-3 text-left text-sm font-medium leading-tight active:scale-[0.97] transition">
     <i data-lucide="${p.icon}" class="h-4 w-4 shrink-0"></i><span class="min-w-0">${p.label}</span>
   </button>`).join('');
 $('#quickPills').addEventListener('click', (e) => {
@@ -932,7 +938,7 @@ $('#quickPills').addEventListener('click', (e) => {
 
 /* --- Demo chips --- */
 $('#examples').innerHTML = EXAMPLES.map((x, i) => `
-  <button type="button" data-example="${i}" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-left text-[12.5px] text-slate-600 hover:border-emerald-500 hover:text-emerald-800 active:scale-[0.98] transition">
+  <button type="button" data-example="${i}" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-left text-[12.5px] text-slate-600 hover:border-emerald-500 hover:text-emerald-800 active:scale-[0.98] transition">
     <span class="font-semibold text-slate-800 whitespace-nowrap">${x.lead}</span><span class="min-w-0">“${x.text}”</span>
   </button>`).join('');
 $('#examples').addEventListener('click', (e) => {
@@ -1082,13 +1088,13 @@ const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-ful
 function bannerHtml(stops) {
   const t = totals(stops), n = stops.length;
   return `
-    <section class="rounded-2xl bg-slate-900 text-white p-4 sm:p-5 shadow-sm">
-      <p class="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span class="text-[16px] font-semibold">🚗 <span id="tripTitle">Optimized ${n}-Stop Route</span></span>
-        <span id="tripTotals" class="text-[13.5px] text-slate-300">~${t.mi.toFixed(1)} mi total (~${t.min} min from ${esc(start.label)}) · estimate</span>
-      </p>
-      <p class="mt-1.5 text-[13px] text-slate-300 leading-relaxed">${esc(start.label)} → ${stops.map((s, i) => `<span class="text-white">Stop ${i + 1}: ${shortName(s.site)}</span>`).join(' → ')}</p>
-      <a target="_blank" rel="noopener" href="${fullTripUrl(stops)}" class="mt-3.5 inline-flex items-center gap-1.5 h-10 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">Open Full Route in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
+    <section class="fade-up flex flex-wrap md:flex-nowrap items-center justify-between gap-x-5 gap-y-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-sm">
+      <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p class="text-[14.5px] font-semibold whitespace-nowrap">🚗 <span id="tripTitle">Optimized ${n}-Stop Route</span></p>
+        <p id="tripTotals" class="text-[13.5px] text-emerald-300 font-medium whitespace-nowrap">~${t.mi.toFixed(1)} mi total (~${t.min} min from ${esc(start.label)})</p>
+        <p class="text-[13px] text-slate-300 leading-snug">${esc(start.label)} → ${stops.map((s, i) => `Stop ${i + 1}: <span class="text-white">${shortName(s.site)}</span>`).join(' → ')}</p>
+      </div>
+      <a target="_blank" rel="noopener" href="${fullTripUrl(stops)}" class="shrink-0 inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-500 px-3.5 text-[13px] font-semibold text-slate-950 whitespace-nowrap hover:bg-emerald-400 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
     </section>`;
 }
 function stopCard(s, i, stops) {
@@ -1188,7 +1194,6 @@ function renderResults(items, animate) {
         <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">${n} item${n === 1 ? '' : 's'} · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>
         ${lastAI && source === 'search' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
       </div>
-      ${trip.stops.length ? bannerHtml(trip.stops) : ''}
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
       ${unknown.length ? unknownCard(unknown) : ''}
@@ -1209,6 +1214,8 @@ function render(animate = true) {
   const items = pending ? [] : selection.map(resolve);
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);
+  $('#tripBanner').innerHTML = !pending && trip.stops.length ? bannerHtml(trip.stops) : '';
+  icons();
   routeTrip();
 }
 
