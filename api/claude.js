@@ -51,6 +51,11 @@ Destinations:
 - other: real donations none of the above take: medicine, paint, chemicals, batteries, mattresses,
   car seats, crutches and wheelchairs.
 
+Examples: sealed candy and snacks -> second_harvest; fish food, bird seed and pet cages -> humane_society;
+grocery gift cards -> sacred_heart; adult books, textbooks, kitchenware and household items -> goodwill_sv;
+fresh milk, meat, frozen food and cakes -> reject (they need refrigeration); cribs and used pillows -> reject.
+When an item's condition is the problem, put it in the label ("Opened Cereal", "Broken Microwave").
+Only reject an item for a real reason from the list above; when in doubt, choose the place that takes that kind of item.
 Use "unknown" only when you truly can't tell what an item is.
 For each item: "label" is a short Title Case name, "reason" is one friendly sentence under 25 words,
 "instead" is one short suggestion for rejected items and an empty string otherwise. Return at most 8 items.
