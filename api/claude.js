@@ -75,9 +75,28 @@ const SCHEMA = {
   },
 };
 
+// Simple per-visitor limit so the public link can't be used to run up the API bill.
+// Kept in memory per server instance: a speed bump, not a guarantee (also set a spend limit in the Anthropic Console).
+const WINDOW_MS = 60_000, MAX_POINTS = 20;   // a typed search costs 1 point, a photo 4
+const hits = new Map();
+function overLimit(ip, points) {
+  const now = Date.now();
+  const h = hits.get(ip);
+  const cur = h && now - h.start < WINDOW_MS ? h : { start: now, used: 0 };
+  cur.used += points;
+  hits.set(ip, cur);
+  if (hits.size > 5000) for (const [k, v] of hits) if (now - v.start >= WINDOW_MS) hits.delete(k);
+  return cur.used > MAX_POINTS;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'not_configured' });
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  if (overLimit(ip, typeof req.body?.image === 'string' ? 4 : 1)) {
+    res.setHeader('Retry-After', '60');
+    return res.status(429).json({ error: 'rate_limited' });
+  }
 
   const body = req.body || {};
   let content, budget;

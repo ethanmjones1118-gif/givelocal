@@ -4,7 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>GiveLocal South Bay</title>
-<meta name="description" content="Find where to donate items in San Jose, Campbell and Milpitas, and see what local pantries need most." />
+<meta name="description" content="Type or snap a photo of what you want to donate. GiveLocal sorts every item and plans the shortest drop-off route across San Jose, Campbell and Milpitas." />
+<meta property="og:title" content="GiveLocal South Bay" />
+<meta property="og:description" content="Type or snap a photo of what you want to donate. GiveLocal sorts every item and plans the shortest drop-off route across San Jose, Campbell and Milpitas." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#047857" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23047857'/%3E%3Cpath d='M16 23s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 23 14c0 4.8-7 9-7 9z' fill='white'/%3E%3C/svg%3E" />
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
@@ -75,19 +79,17 @@
     </div>
   </nav>
 
-  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-9 sm:pt-11 pb-20">
+  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-7 sm:pt-9 pb-20">
 
-    <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">How would you like to donate today?</h1>
+    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">What would you like to donate?</h1>
 
     <!-- Tabs -->
-    <div role="tablist" class="mt-6 grid grid-cols-2 gap-2 p-1.5 bg-slate-200/70 rounded-2xl mb-5 max-w-3xl">
-      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-left rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition">
-        <span class="block text-[15px] sm:text-base font-semibold">1. I have items to donate</span>
-        <span class="block mt-0.5 text-[13px] text-slate-500">Find where they go</span>
+    <div role="tablist" class="mt-4 inline-grid grid-cols-2 gap-1 p-1 bg-slate-200/70 rounded-xl mb-4">
+      <button role="tab" id="tab-give" aria-controls="panel-give" data-tab="give" class="tab text-center whitespace-nowrap rounded-lg px-3.5 sm:px-5 py-2 transition">
+        <span class="block text-[14px] font-semibold">I have items</span>
       </button>
-      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-left rounded-xl px-4 py-2.5 sm:px-5 sm:py-3 transition">
-        <span class="block text-[15px] sm:text-base font-semibold">2. See what local pantries need</span>
-        <span class="block mt-0.5 text-[13px] text-slate-500">Tap a need to plan the drop-off</span>
+      <button role="tab" id="tab-needs" aria-controls="panel-needs" data-tab="needs" class="tab text-center whitespace-nowrap rounded-lg px-3.5 sm:px-5 py-2 transition">
+        <span class="block text-[14px] font-semibold">What pantries need</span>
       </button>
     </div>
 
@@ -104,17 +106,19 @@
             <i data-lucide="camera" class="h-4 w-4"></i><span class="hidden sm:inline">Scan photo</span>
           </button>
           <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.97] disabled:opacity-70 transition">
-            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span id="askAILabel">Ask AI</span>
+            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="route" class="h-4 w-4"></i></span><span id="askAILabel">Plan trip</span>
           </button>
         </div>
       </form>
-      <div id="examples" class="mt-2 flex flex-wrap gap-2"></div>
+      <p id="examples" class="mt-2 px-1 text-[13px] text-slate-500 leading-relaxed"></p>
 
-      <p class="mt-4 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
+      <div class="mt-5 flex items-center justify-between gap-3">
+        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Or tap one or more</p>
+        <span id="selectionBar" class="scroll-mt-24 text-[13px]"></span>
+      </div>
       <div id="quickPills" class="mt-1.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2"></div>
-      <div id="selectionBar" class="mt-3 min-h-[30px] flex flex-wrap items-center gap-1.5 text-sm"></div>
 
-      <div id="tripBanner" class="mt-2"></div>
+      <div id="tripBanner" class="mt-4 scroll-mt-24"></div>
       <div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
         <div id="resultLeft" class="md:col-span-7 min-w-0" aria-live="polite"></div>
         <aside id="mapPanel" class="md:col-span-5 md:sticky md:top-[88px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -216,8 +220,19 @@ const ORGS = {
 };
 const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const toMin = (t) => { const m = /(\d+)(?::(\d+))?\s*(AM|PM)/i.exec(t); return ((+m[1] % 12) + (m[3].toUpperCase() === 'PM' ? 12 : 0)) * 60 + (+m[2] || 0); };
+// Opening hours are judged in South Bay time, so a viewer in another timezone sees the right status
+function bayNow() {
+  try {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+      .formatToParts(new Date()).map(x => [x.type, x.value]));
+    return { d: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), mins: (+p.hour % 24) * 60 + +p.minute };
+  } catch (_) {
+    const now = new Date();
+    return { d: now.getDay(), mins: now.getHours() * 60 + now.getMinutes() };
+  }
+}
 function todayHours(o) {
-  const now = new Date(), d = now.getDay(), mins = now.getHours() * 60 + now.getMinutes();
+  const { d, mins } = bayNow();
   if (o.days.includes(d)) {
     if (mins < toMin(o.open)) return { open: false, text: `Opens today at ${o.open}` };
     if (mins < toMin(o.close)) return { open: true, text: `Open now · until ${o.close}` };
@@ -830,13 +845,13 @@ async function routeTrip() {
 function updateTripNumbers() {
   const t = totals(trip.stops), n = trip.stops.length, approx = trip.real ? '' : '~';
   const el = $('#tripTotals');
-  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi total (${approx}${t.min} min from ${start.label})`;
+  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi, ${approx}${t.min} min from ${start.label}`;
   trip.stops.forEach((s, i) => {
     const leg = document.querySelector(`[data-leg="${i}"]`);
     if (leg) leg.textContent = `${approx}${s.leg.mi.toFixed(1)} mi · ${approx}${s.leg.min} min from ${i ? siteName(trip.stops[i - 1].site).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '') : start.label}`;
   });
   const title = $('#tripTitle');
-  if (title) title.textContent = `Optimized ${n}-Stop Route`;
+  if (title) title.textContent = tripTitle(n);
 }
 
 /* --- Starting-point menu --- */
@@ -858,7 +873,14 @@ startSel.addEventListener('change', () => {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       // Rounded to about a block: plenty for a driving route, and kinder to your privacy
-      setStart('gps', { label: 'your location', place: '', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) });
+      const here = { label: 'your location', place: '', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) };
+      const away = haversineMi(here, STARTS.downtown);
+      if (away > 60) {
+        setStart('downtown', STARTS.downtown);
+        toast(`You’re about ${Math.round(away / 10) * 10} miles from San Jose, so the trip starts from Downtown San Jose.`);
+        return;
+      }
+      setStart('gps', here);
       toast('Using your location as the starting point');
     },
     () => { back(); toast('Couldn’t get your location. Still starting from ' + start.label + '.'); },
@@ -909,8 +931,8 @@ const isDefault = () => source === 'pills' && selection.length === 1 && selectio
 function setBusy(on) {
   $('#askAI').disabled = on;
   $('#photoBtn').disabled = on;
-  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="sparkles" class="h-4 w-4"></i>';
-  $('#askAILabel').textContent = on ? 'Sorting...' : 'Ask AI';
+  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="route" class="h-4 w-4"></i>';
+  $('#askAILabel').textContent = on ? 'Sorting...' : 'Plan trip';
   icons();
 }
 function cancelSearch() {
@@ -949,10 +971,8 @@ $('#quickPills').addEventListener('click', (e) => {
 });
 
 /* --- Demo chips --- */
-$('#examples').innerHTML = EXAMPLES.map((x, i) => `
-  <button type="button" data-example="${i}" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-left text-[12.5px] text-slate-600 hover:border-emerald-500 hover:text-emerald-800 active:scale-[0.98] transition">
-    <span class="font-semibold text-slate-800 whitespace-nowrap">${x.lead}</span><span class="min-w-0">“${x.text}”</span>
-  </button>`).join('');
+$('#examples').innerHTML = 'Try: ' + EXAMPLES.map((x, i) =>
+  `<button type="button" data-example="${i}" class="text-left text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-emerald-800 hover:decoration-emerald-500">${x.text}</button>`).join('<span class="mx-1.5 text-slate-300">·</span>');
 $('#examples').addEventListener('click', (e) => {
   const b = e.target.closest('[data-example]');
   if (!b) return;
@@ -962,14 +982,8 @@ $('#examples').addEventListener('click', (e) => {
 
 /* --- Selected chips + Clear all --- */
 function renderBar() {
-  const x = '<i data-lucide="x" class="h-3 w-3"></i>';
-  $('#selectionBar').innerHTML = selection.length ? `
-    <span class="text-slate-500">Selected:</span>
-    ${selection.map(s => `
-      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 pl-2.5 pr-1 py-0.5 text-[13px] text-slate-700">${esc(s.label)}
-        <button type="button" data-unselect="${esc(s.id)}" class="h-5 w-5 grid place-items-center rounded-full hover:bg-slate-300 text-slate-500" aria-label="Remove ${esc(s.label)}">${x}</button>
-      </span>`).join('')}
-    ${isDefault() ? '' : `<button type="button" data-reset class="ml-1 text-[13px] font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">Clear all</button>`}` : '';
+  $('#selectionBar').innerHTML = isDefault() || (!selection.length && !photoNote) ? ''
+    : '<button type="button" data-reset class="font-medium text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">Clear all</button>';
 }
 $('#selectionBar').addEventListener('click', (e) => {
   const u = e.target.closest('[data-unselect]');
@@ -1132,10 +1146,11 @@ async function runPhoto(file) {
   pending = 'your photo';
   setBusy(true);
   render();
-  let entries = null, found = false;
+  let entries = null, found = false, status = 0;
   const timer = setTimeout(() => ctrl.abort(), PHOTO_TIMEOUT_MS);
   try {
     const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: shot.data, mediaType: shot.mediaType }), signal: ctrl.signal });
+    status = res.status;
     if (res.ok) {
       const data = await res.json();
       found = true;
@@ -1150,8 +1165,10 @@ async function runPhoto(file) {
   setBusy(false);
   if (entries && entries.length) { selection = entries; lastAI = entries.some(en => en.ai); }
   else photoNote = found
-    ? 'Claude didn’t spot anything to donate in this photo. Try a closer shot of the items, or type what you have.'
-    : 'The photo scan isn’t available right now. Type what’s in the photo and the built-in sorter will plan your trip.';
+    ? 'We didn’t spot anything to donate in this photo. Try a closer shot of the items, or type what you have.'
+    : status === 429
+      ? 'That’s a lot of scans in one minute. Wait a moment and try again, or type what’s in the photo.'
+      : 'The photo scan isn’t available right now. Type what’s in the photo instead and we’ll plan your trip.';
   render();
 }
 const aiBusyGuard = () => $('#askAI').disabled;
@@ -1179,14 +1196,14 @@ const HOW = {
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
 const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${i.hot ? '<i data-lucide="flame" class="h-3 w-3 text-red-600"></i>' : ''}${esc(i.label)}</span>`;
 
+const tripTitle = (n) => n === 1 ? 'Your drop-off' : `Optimized ${n}-stop route`;
 function bannerHtml(stops) {
   const t = totals(stops), n = stops.length;
   return `
-    <section class="fade-up flex flex-wrap md:flex-nowrap items-center justify-between gap-x-5 gap-y-2.5 rounded-2xl bg-slate-900 text-white px-4 py-3 shadow-sm">
-      <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p class="text-[14.5px] font-semibold whitespace-nowrap">🚗 <span id="tripTitle">Optimized ${n}-Stop Route</span></p>
-        <p id="tripTotals" class="text-[13.5px] text-emerald-300 font-medium whitespace-nowrap">~${t.mi.toFixed(1)} mi total (~${t.min} min from ${esc(start.label)})</p>
-        <p class="text-[13px] text-slate-300 leading-snug">${esc(start.label)} → ${stops.map((s, i) => `Stop ${i + 1}: <span class="text-white">${shortName(s.site)}</span>`).join(' → ')}</p>
+    <section class="fade-up flex flex-wrap md:flex-nowrap items-center justify-between gap-x-5 gap-y-2 rounded-2xl bg-slate-900 text-white px-4 py-3">
+      <div class="min-w-0">
+        <p class="text-[14.5px] font-semibold">🚗 <span id="tripTitle">${tripTitle(n)}</span> <span class="text-slate-500">·</span> <span id="tripTotals" class="font-medium text-emerald-300">~${t.mi.toFixed(1)} mi, ~${t.min} min from ${esc(start.label)}</span></p>
+        ${n > 1 ? `<p class="mt-0.5 text-[13px] text-slate-300">${esc(cap(start.label))} → ${stops.map((s, i) => `${i + 1}. <span class="text-white">${shortName(s.site)}</span>`).join(' → ')}</p>` : ''}
       </div>
       <a target="_blank" rel="noopener" href="${fullTripUrl(stops)}" class="shrink-0 inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-500 px-3.5 text-[13px] font-semibold text-slate-950 whitespace-nowrap hover:bg-emerald-400 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
     </section>`;
@@ -1196,24 +1213,24 @@ function stopCard(s, i, stops) {
   const orgs = [...s.orgs];
   const org = orgs.includes('closet') ? 'closet' : orgs[0];               // the Clothes Closet closes earliest
   const how = partner ? HOW[s.site] : s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
-  const hot = s.items.some(i2 => i2.hot);
   const from = i ? sitePlace(stops[i - 1].site) : startPlace();
   const tone = partner
-    ? { border: 'border-amber-300', head: 'bg-amber-50 border-amber-200 text-amber-800', num: 'bg-amber-600', tag: 'border-amber-200 bg-amber-50 text-amber-900', label: 'Take to Goodwill / ReStore' }
-    : { border: 'border-emerald-300', head: 'bg-emerald-50 border-emerald-200 text-emerald-800', num: 'bg-emerald-700', tag: 'border-emerald-200 bg-emerald-50 text-emerald-900', label: 'Drop-off' };
+    ? { border: 'border-amber-300', num: 'bg-amber-600', tag: 'border-amber-200 bg-amber-50 text-amber-900', link: 'text-amber-800 hover:text-amber-900' }
+    : { border: 'border-emerald-300', num: 'bg-emerald-700', tag: 'border-emerald-200 bg-emerald-50 text-emerald-900', link: 'text-emerald-700 hover:text-emerald-800' };
   return `
-    <article class="rounded-2xl border ${tone.border} bg-white shadow-sm overflow-hidden">
-      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 border-b ${tone.head}">
-        <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em]"><span class="h-5 w-5 grid place-items-center rounded-full ${tone.num} text-white text-[11px]">${i + 1}</span>Stop ${i + 1} · ${tone.label}</p>
-        ${siteStatus(s.site, partner ? null : org)}
-      </div>
-      <div class="p-4">
-        <h3 class="text-[17px] font-semibold leading-snug">${siteName(s.site)}</h3>
-        <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')} · <span data-leg="${i}">~${s.leg.mi.toFixed(1)} mi · ~${s.leg.min} min from ${i ? shortName(stops[i - 1].site) : esc(start.label)}</span></p>
-        <div class="mt-3 flex flex-wrap gap-1.5">${s.items.map(it => tag(it, tone.tag)).join('')}</div>
-        ${hot ? '<p class="mt-2 flex items-center gap-1.5 text-[12.5px] text-red-700"><i data-lucide="flame" class="h-3.5 w-3.5"></i>On this organization’s high-demand list right now</p>' : ''}
-        <p class="mt-3 text-[13.5px] text-slate-700 leading-relaxed">${how}</p>
-        <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site), from)}" class="mt-3 inline-flex items-center gap-1 text-[13.5px] font-semibold ${partner ? 'text-amber-800 hover:text-amber-900' : 'text-emerald-700 hover:text-emerald-800'}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
+    <article class="rounded-2xl border ${tone.border} bg-white p-4">
+      <div class="flex items-start gap-3">
+        <span class="mt-0.5 h-6 w-6 shrink-0 grid place-items-center rounded-full ${tone.num} text-white text-[12px] font-bold">${i + 1}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <h3 class="text-[16px] font-semibold leading-snug">${siteName(s.site)}</h3>
+            ${siteStatus(s.site, partner ? null : org)}
+          </div>
+          <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')} · <span data-leg="${i}">~${s.leg.mi.toFixed(1)} mi · ~${s.leg.min} min from ${i ? shortName(stops[i - 1].site) : esc(start.label)}</span></p>
+          <div class="mt-2.5 flex flex-wrap gap-1.5">${s.items.map(it => tag(it, tone.tag)).join('')}</div>
+          <p class="mt-2.5 text-[13px] text-slate-600 leading-relaxed">${how}</p>
+          <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site), from)}" class="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold ${tone.link}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
+        </div>
       </div>
     </article>`;
 }
@@ -1262,7 +1279,7 @@ function renderResults(items, animate) {
         ${photo ? `
         <div class="flex items-center gap-3">
           <img src="${photo.url}" alt="Your photo" class="h-16 w-16 rounded-xl object-cover border border-slate-200">
-          <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Claude is finding every item in your photo…</p>
+          <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Finding every item in your photo…</p>
         </div>` : `
         <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>`}
         <div class="mt-4 space-y-3 animate-pulse">
@@ -1300,12 +1317,8 @@ function renderResults(items, animate) {
   const n = selection.length;
   left.innerHTML = `
     <div class="${animate ? 'fade-up' : ''} space-y-3">
-      <div class="flex flex-wrap items-center justify-between gap-2 px-1">
-        ${source === 'photo' && photo ? `
-        <p class="flex items-center gap-2.5 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>` : `
-        <p class="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">${n} item${n === 1 ? '' : 's'} · ${trip.stops.length ? `${trip.stops.length} stop${trip.stops.length === 1 ? '' : 's'}` : 'nothing to drop off'}</p>`}
-        ${lastAI && source !== 'pills' ? '<span class="inline-flex items-center rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-[11px] font-semibold text-violet-700">✨ Matched by AI</span>' : ''}
-      </div>
+      ${source === 'photo' && photo ? `
+      <p class="flex items-center gap-2.5 px-1 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo</p>` : ''}
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
       ${unknown.length ? unknownCard(unknown) : ''}
@@ -1417,7 +1430,7 @@ function planNeed(label, org, note, hot) {
   selection = [{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }];
   setTab('give');
   render();
-  scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => $('#tripBanner').scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
 }
 $('#needCard').addEventListener('click', (e) => {
   const nb = e.target.closest('[data-need]'), sb = e.target.closest('[data-staple]');
@@ -1447,7 +1460,16 @@ $('#staffBtn').addEventListener('click', () => {
   $('#fTitle').focus();
 });
 staffModal.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeStaff(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeStaff(); });
+document.addEventListener('keydown', (e) => {
+  if (staffModal.classList.contains('hidden')) return;
+  if (e.key === 'Escape') { closeStaff(); return; }
+  if (e.key !== 'Tab') return;
+  const f = [...staffModal.querySelectorAll('button, input, select')].filter(el => !el.disabled && el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 $('#staffForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const org = $('#fOrg').value;
