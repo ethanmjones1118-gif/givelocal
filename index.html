@@ -924,7 +924,7 @@ const EXAMPLES = [
 ];
 const pillEntry = (p) => ({ id: `pill:${p.id}`, label: p.label, q: p.q, why: p.why });
 
-let selection = [pillEntry(QUICK[0])];   // Canned Food on load
+let selection = [];                      // nothing selected until the donor types or taps
 let source = 'pills';                    // 'pills' or 'search'
 let lastAI = false;                      // did Claude sort the current results?
 let pending = '';                        // text being sorted right now
@@ -932,7 +932,7 @@ let photo = null;                        // { url } of the photo being or last s
 let photoNote = '';                      // why a photo scan found nothing, shown in place of results
 let searchSeq = 0, searchCtrl = null;
 const input = $('#searchInput');
-const isDefault = () => source === 'pills' && selection.length === 1 && selection[0].id === 'pill:canned';
+const isDefault = () => !selection.length && !pending && !photoNote;
 
 function setBusy(on) {
   $('#askAI').disabled = on;
@@ -955,7 +955,7 @@ function clearPhoto() {
 function resetToDefault() {
   cancelSearch();
   source = 'pills'; lastAI = false; clearPhoto();
-  selection = [pillEntry(QUICK[0])];
+  selection = [];
   input.value = '';
   render();
 }
@@ -988,7 +988,7 @@ $('#examples').addEventListener('click', (e) => {
 
 /* --- Selected chips + Clear all --- */
 function renderBar() {
-  $('#selectionBar').innerHTML = isDefault() || (!selection.length && !photoNote) ? ''
+  $('#selectionBar').innerHTML = isDefault() ? ''
     : '<button type="button" data-reset class="font-medium text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">Clear all</button>';
 }
 $('#selectionBar').addEventListener('click', (e) => {
@@ -1325,10 +1325,8 @@ function renderResults(items, animate) {
   }
   if (!selection.length) {
     left.innerHTML = `
-      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center">
-        <i data-lucide="mouse-pointer-click" class="h-6 w-6 mx-auto text-slate-400"></i>
-        <p class="mt-2 text-slate-600">Tap an item above, or type what you have, to plan your drop-off.</p>
-        <button type="button" data-reset class="mt-4 inline-flex items-center h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Start with Canned Food</button>
+      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-5 py-7 text-center">
+        <p class="text-[14.5px] text-slate-600">Type or tap what you have above, and the places that take it will show up here.</p>
       </div>`;
     icons(); return;
   }
