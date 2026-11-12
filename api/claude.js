@@ -45,12 +45,18 @@ Destinations:
   stained, dirty or torn clothes; broken or stained furniture and appliances; used socks or underwear;
   plush pet toys; recalled items; alcohol; weapons.
   Exception: opened diaper packs are fine at sacred_heart if clean (tell them to label the size).
+  Loose or unpackaged food (bulk dry beans or rice in a bag or jar from home) is a reject, but single cans,
+  single packages and individual servings still sealed in their original packaging are accepted.
+  When an item is ambiguous, like "individual beans", assume the common donation (a sealed can) and accept it.
 - other: real donations none of the above take: medicine, paint, chemicals, batteries, mattresses,
   car seats, crutches and wheelchairs.
 
 Use "unknown" only when you truly can't tell what an item is.
 For each item: "label" is a short Title Case name, "reason" is one friendly sentence under 25 words,
-"instead" is one short suggestion for rejected items and an empty string otherwise. Return at most 8 items.`;
+"instead" is one short suggestion for rejected items and an empty string otherwise. Return at most 8 items.
+"instead" must be safe, practical advice: use it at home, share it with a neighbor, compost, recycle, or buy a
+sealed version to donate next time. Never suggest repackaging, resealing, relabeling or re-dating food; pantries
+cannot accept food that was repacked at home.`;
 
 const DESTINATIONS = ['sacred_heart', 'second_harvest', 'humane_society', 'habitat_restore', 'goodwill_sv', 'reject', 'other', 'unknown'];
 const SCHEMA = {

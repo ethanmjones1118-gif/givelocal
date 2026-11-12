@@ -57,6 +57,7 @@
   .leaflet-tooltip.site-tip.start::before { border-top-color: transparent; border-bottom-color: #2563EB; }
   button, a, select { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
+  #routeToggle[aria-expanded="true"] .route-chev { transform: rotate(180deg); }
   .trip-pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9999px; border: 3px solid #fff; color: #fff; font: 700 13px/1 "Plus Jakarta Sans", system-ui, sans-serif; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
   .trip-pin.green { background: #047857; }
   .trip-pin.amber { background: #B45309; }
@@ -106,7 +107,7 @@
             <i data-lucide="camera" class="h-4 w-4"></i><span class="hidden sm:inline">Scan photo</span>
           </button>
           <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.97] disabled:opacity-70 transition">
-            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="route" class="h-4 w-4"></i></span><span id="askAILabel">Plan trip</span>
+            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="arrow-right" class="h-4 w-4"></i></span><span id="askAILabel">Find drop-offs</span>
           </button>
         </div>
       </form>
@@ -118,20 +119,25 @@
       </div>
       <div id="quickPills" class="mt-1.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2"></div>
 
-      <div id="tripBanner" class="mt-4 scroll-mt-24"></div>
-      <div class="mt-3 grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-        <div id="resultLeft" class="md:col-span-7 min-w-0" aria-live="polite"></div>
-        <aside id="mapPanel" class="md:col-span-5 md:sticky md:top-[88px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div class="flex items-center gap-2 px-3.5 py-2.5 border-b border-slate-200">
+      <div id="resultLeft" class="mt-5 max-w-3xl scroll-mt-24" aria-live="polite"></div>
+
+      <!-- Optional: one route for donors visiting several places -->
+      <section id="routeBox" hidden class="mt-3 max-w-3xl rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <button id="routeToggle" type="button" aria-expanded="false" aria-controls="routeBody" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition">
+          <span class="min-w-0 text-[14px]">🚗 <span id="tripTitle" class="font-semibold"></span> <span id="tripTotals" class="text-slate-500"></span></span>
+          <span class="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-700"><span id="routeToggleLabel">Plan route</span><i data-lucide="chevron-down" class="h-4 w-4 route-chev transition-transform"></i></span>
+        </button>
+        <div id="routeBody" hidden class="border-t border-slate-200">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
             <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0"></span>
             <label for="startSel" class="text-[13px] text-slate-600 whitespace-nowrap">Starting from</label>
-            <select id="startSel" class="flex-1 min-w-0 h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
+            <select id="startSel" class="min-w-0 h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
+            <a id="routeLink" target="_blank" rel="noopener" href="#" class="ml-auto inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white whitespace-nowrap hover:bg-emerald-700 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
           </div>
-          <div class="relative isolate">
-            <div id="map" class="h-[320px] md:h-[min(560px,calc(100vh-170px))] bg-slate-100"></div>
-          </div>
-        </aside>
-      </div>
+          <p id="routeSeq" class="px-4 pb-3 -mt-1 text-[13px] text-slate-600"></p>
+          <div class="relative isolate"><div id="map" class="h-[300px] sm:h-[360px] bg-slate-100"></div></div>
+        </div>
+      </section>
     </section>
 
     <!-- TAB 2 -->
@@ -324,6 +330,7 @@ const REDIRECTS = {
   medloan:  { name: 'A medical equipment lending closet', query: 'medical equipment loan closet San Jose' },
   bike:     { name: 'A community bike shop or Goodwill of Silicon Valley', query: 'community bike shop donation San Jose', places: ['goodwill'] },
   carseat:  { name: 'A car seat recycling event or retailer trade-in', query: 'car seat recycling San Jose' },
+  lions:    { name: 'A Lions Club eyeglass recycling box (many libraries and eye doctors have one)', query: 'Lions Club eyeglass donation box San Jose' },
 };
 
 // Item knowledge base. A = accepted, R = redirect elsewhere, X = never accepted.
@@ -337,11 +344,11 @@ const S = { alt: ['harvest'] };  // pantry food Sacred Heart takes, Second Harve
 
 const ITEMS = [
   // --- Food pantry ---
-  A('Canned Goods', 'canned goods|canned food|cans|canned|nonperishable|non perishable|nonperishables|pantry food|groceries|food', 'harvest', 'food', 'Unopened, in-date cans and boxes are always welcome.', H),
+  A('Canned Goods', 'canned goods|canned food|cans|canned|nonperishable|non perishable|nonperishables|pantry food|groceries|food donation|dry goods', 'harvest', 'food', 'Unopened, in-date cans and boxes are always welcome.', H),
   A('Canned Tuna', 'tuna|canned tuna|can of tuna', 'harvest', 'food', 'A top protein request. Pop-top cans packed in water are ideal.', H),
   A('Canned Chicken', 'canned chicken|chicken breast can|can of chicken', 'harvest', 'food', 'High-protein and easy for seniors. Pop-top cans preferred.', H),
   A('Beans', 'beans|black beans|pinto beans|kidney beans|garbanzo|chickpeas|refried beans|canned beans|lentils|dry beans', 'harvest', 'food', 'A pantry staple, canned or dry, any variety, unopened.', H),
-  A('Canned Soup & Chili', 'soup|chili|stew|canned soup', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
+  A('Canned Soup & Chili', 'soup|chili|stew|canned soup|broth|chicken broth|stock|bouillon cubes', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
   A('Canned Vegetables', 'canned vegetables|canned veggies|canned corn|corn|green beans|peas|canned tomatoes|tomato sauce', 'harvest', 'food', 'Low-sodium canned vegetables are especially welcome.', H),
   A('Canned Fruit', 'canned fruit|fruit cups|fruit cup|applesauce|canned peaches|pineapple|mandarin oranges', 'harvest', 'food', 'Fruit packed in juice is preferred over heavy syrup.', H),
   A('Canned Meat & Fish', 'spam|canned meat|canned protein|pop top protein|vienna sausage|corned beef|canned salmon|sardines', 'harvest', 'food', 'Shelf-stable proteins are always in demand.', H),
@@ -351,16 +358,18 @@ const ITEMS = [
   A('Pasta & Noodles', 'pasta|spaghetti|noodles|macaroni|mac and cheese|ramen|penne', 'harvest', 'food', 'Any unopened pasta, noodles or boxed mac and cheese.', H),
   A('Oats & Oatmeal', 'oats|oatmeal|rolled oats|instant oatmeal|grits', 'harvest', 'food', 'A filling breakfast staple, in unopened canisters or packets.', H),
   A('Cereal', 'cereal|granola|cheerios|corn flakes|breakfast cereal', 'harvest', 'food', 'Unopened boxes, and low-sugar cereals are preferred.', H),
-  A('Fresh Produce', 'produce|vegetables|veggies|fresh fruit|fruit|lettuce|carrots|potatoes|onions|tomatoes|apples|bananas|avocados|squash|zucchini', 'harvest', 'food', 'Welcome when it\'s clean and dropped off early in the day.', H),
+  A('Fresh Produce', 'produce|vegetables|veggies|fresh fruit|fruit|lettuce|carrots|potatoes|onions|tomatoes|apples|bananas|avocados|squash|zucchini|pumpkin|pumpkins|melon|watermelon|grapes|cucumbers|peppers|broccoli', 'harvest', 'food', 'Welcome when it\'s clean and dropped off early in the day.', H),
   A('Backyard Fruit', 'lemons|lemon|oranges|orange|persimmons|figs|plums|backyard fruit|tree fruit|citrus|grapefruit|loquats', 'harvest', 'food', 'Backyard harvests are welcome! Rinse, remove bruised fruit, and bring it in boxes.', H),
   A('Baby Formula', 'formula|baby formula|infant formula|similac|enfamil', 'sacred', 'baby', 'Must be unopened and in date. Formula is one of the most urgent infant needs.'),
   A('Baby Food', 'baby food|baby cereal|puree|purees|baby food pouches', 'sacred', 'baby', 'Unopened jars or pouches, in date.'),
   A('Spices & Seasonings', 'spices|spice|seasoning|seasonings|salt|pepper|herbs|bouillon', 'sacred', 'food', 'Sealed spices help families cook from basic staples.', S),
+  A('Bottled Water & Juice', 'bottled water|water bottles|water|juice|juice boxes|sports drinks|gatorade|electrolyte drinks', 'harvest', 'food', 'Sealed bottled water and juice in plastic are welcome, especially in summer heat waves.', H),
+  A('Gift Cards & Money', 'gift card|gift cards|grocery gift cards|cash|money|check|donation money', 'sacred', 'gear', 'Grocery gift cards let families buy fresh food; cash goes furthest as an online gift, since pantries buy food at wholesale prices.'),
   A('Shelf-stable Milk', 'shelf stable milk|boxed milk|uht milk|powdered milk|evaporated milk|condensed milk|almond milk|oat milk|soy milk|milk', 'harvest', 'food', 'Unopened boxed or powdered milk is a top request.', H),
   A('Egg Cartons', 'egg carton|egg cartons|empty egg cartons|egg crate', 'sacred', 'gear', 'Clean 12-count cartons are reused to repack bulk eggs for families!'),
   A('Fresh Eggs', 'eggs|egg|dozen eggs', 'sacred', 'food', 'Store-bought sealed eggs are welcome. Keep them cold and bring them early.'),
   A('Flour & Baking Staples', 'flour|sugar|baking mix|pancake mix|cornmeal|masa|cake mix', 'harvest', 'food', 'Sealed baking staples are welcome.', H),
-  A('Crackers & Snacks', 'crackers|snacks|chips|pretzels|granola bars|trail mix|nuts|dried fruit|raisins', 'harvest', 'food', 'Sealed snacks are great for kids\' school lunches.', H),
+  A('Crackers & Snacks', 'crackers|snacks|chips|pretzels|granola bars|protein bars|cereal bars|energy bars|trail mix|nuts|dried fruit|raisins|cookies|store bought cookies|candy|halloween candy|chocolate', 'harvest', 'food', 'Sealed snacks are great for kids\' school lunches.', H),
   A('Pasta Sauce & Salsa', 'pasta sauce|marinara|salsa|spaghetti sauce', 'harvest', 'food', 'Welcome sealed, and cans or plastic jars travel best.', H),
   A('Coffee & Tea', 'coffee|tea|hot chocolate|cocoa', 'harvest', 'food', 'Sealed coffee and tea are a small comfort many families miss.', H),
   A('Bread & Tortillas', 'bread|tortillas|tortilla|bagels|buns|pita', 'sacred', 'food', 'Store-bought bread is welcome the same day. Bring it early.'),
@@ -387,7 +396,7 @@ const ITEMS = [
   A('Backpacks', 'backpack|backpacks|bookbag|school bag|book bag', 'sacred', 'gear', 'Sturdy backpacks are in high demand in July–August and January.'),
   A('School Supplies', 'school supplies|notebooks|notebook|pencils|pencil|pens|crayons|markers|binders|folders|glue sticks|calculator|rulers', 'sacred', 'gear', 'New school supplies help kids start the year ready to learn.'),
   A('Children\'s Books', 'books|book|childrens books|kids books|picture books|board books', 'sacred', 'gear', 'Clean children\'s and bilingual books are favorites.'),
-  A('Toiletries', 'toothpaste|toothbrush|toothbrushes|shampoo|conditioner|soap|body wash|deodorant|lotion|toiletries|razors|hotel soap|travel size', 'sacred', 'hygiene', 'Full-size hygiene items are a constant need and rarely donated.'),
+  A('Toiletries', 'toothpaste|toothbrush|toothbrushes|shampoo|conditioner|soap|body wash|deodorant|lotion|toiletries|razors|hotel soap|travel size|band aids|bandaids|bandages|first aid|first aid kit|sunscreen|hand sanitizer', 'sacred', 'hygiene', 'Full-size hygiene items are a constant need and rarely donated.'),
   A('Menstrual Products', 'pads|tampons|menstrual|period products|feminine hygiene|panty liners', 'sacred', 'hygiene', 'A top request that\'s rarely donated. Sealed boxes only.'),
   A('Kids\' Toys', 'toy|toys|lego|legos|board game|board games|puzzle|puzzles|doll|dolls|stuffed animal|stuffed animals', 'sacred', 'gear', 'New or like-new toys are welcome, especially before the holidays.'),
   A('Grocery Bags', 'grocery bags|paper bags|reusable bags|tote bags|shopping bags|paper grocery bags', 'sacred', 'gear', 'Clean paper and reusable bags help families carry groceries home.'),
@@ -395,13 +404,13 @@ const ITEMS = [
   // --- Animal shelter (Humane Society Silicon Valley) ---
   A('Dog Food', 'dog food|puppy food|dog kibble', 'humane', 'petfood', 'Unopened bags of dry or canned dog food.'),
   A('Cat Food', 'cat food|kitten food|cat kibble', 'humane', 'petfood', 'Kitten paté is especially needed during kitten season.'),
-  A('Pet Kibble', 'kibble|dry pet food|pet food', 'humane', 'petfood', 'Unopened bags only. Check the seams for tears.'),
+  A('Pet Kibble', 'kibble|dry pet food|pet food|fish food|bird seed|bird food|hamster food|rabbit food|small animal food|hay', 'humane', 'petfood', 'Unopened bags only. Check the seams for tears.'),
   A('Wet Pet Food', 'wet food|canned dog food|canned cat food|wet cat food|wet dog food|pet food pouches', 'humane', 'petfood', 'Unopened cans and pouches are used every day.'),
   A('Bath Towels', 'bath towels|bath towel|beach towels|beach towel|towels|towel|old towels|dog towels', 'humane', 'linen', 'Old towels make perfect kennel bedding. Worn is fine; just wash them first.'),
   A('Hand Towels & Washcloths', 'hand towels|hand towel|washcloths|washcloth|wash cloths|dish towels', 'humane', 'linen', 'Small towels are used to clean and dry animals all day long.'),
   A('Fleece Blankets', 'fleece blankets|fleece blanket|fleece throw|fleece', 'humane', 'linen', 'Fleece is the favorite because it washes well and doesn\'t unravel.'),
   A('Bed Sheets', 'sheets|bed sheets|pillowcases|pillowcase|duvet cover', 'humane', 'linen', 'Flat sheets and pillowcases make easy kennel bedding.'),
-  A('Dog Crates', 'crate|crates|dog crate|kennel|wire crate|dog kennel', 'humane', 'petgear', 'Clean crates with all latches and trays.'),
+  A('Dog Crates', 'crate|crates|dog crate|kennel|wire crate|dog kennel|cage|cages|pet cage|hamster cage|bird cage', 'humane', 'petgear', 'Clean crates with all latches and trays.'),
   A('Pet Carriers', 'carrier|carriers|cat carrier|pet carrier', 'humane', 'petgear', 'Carriers help send adopted pets home safely.'),
   A('Leashes & Collars', 'leash|leashes|collar|collars|harness|harnesses', 'humane', 'petgear', 'Every adopted dog goes home on a leash, and gently used is fine.'),
   A('Pet Bowls', 'pet bowls|dog bowl|dog bowls|cat bowl|cat bowls|stainless steel bowls|stainless bowls|bowls', 'humane', 'petgear', 'Stainless steel bowls are preferred because they sanitize easily.'),
@@ -413,11 +422,11 @@ const ITEMS = [
   A('Newspaper', 'newspaper|newspapers|shredded paper', 'humane', 'gear', 'Clean newspaper lines kennels and litter areas.'),
 
   // --- Smart redirects (food pantries can't take these) ---
-  R('Mattress & Bed', 'mattress|mattresses|box spring|futon|bed|beds|bed frame|headboard', 'mattress',
+  R('Mattress & Bed', 'mattress|mattresses|box spring|futon|bed|beds', 'mattress',
     'Food banks and Sacred Heart\'s clothes closet can\'t store or sanitize beds, and health rules bar used bedding this size.', 'Furniture', HOUSEHOLD),
   R('Couch / Sofa', 'couch|couches|sofa|sofas|loveseat|sectional|recliner|armchair|futon couch', 'restore',
     'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
-  R('Furniture', 'furniture|table|tables|dining table|coffee table|dresser|dressers|desk|desks|bookshelf|bookcase|chair|chairs|office chair|stool|nightstand|cabinet|lamp|lamps|floor lamp|ottoman', 'restore',
+  R('Furniture', 'furniture|table|tables|dining table|coffee table|dresser|dressers|desk|desks|bookshelf|bookcase|chair|chairs|office chair|stool|nightstand|cabinet|lamp|lamps|floor lamp|ottoman|bed frame|headboard|high chair', 'restore',
     'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
   R('Microwave', 'microwave|microwaves', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
   R('Toaster', 'toaster|toasters|toaster oven|air fryer', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
@@ -429,10 +438,22 @@ const ITEMS = [
   R('Bicycle', 'bike|bikes|bicycle|bicycles|scooter|tricycle', 'bike', 'Food pantries have no room or mechanics to repair and store bikes.', 'Bikes', HOUSEHOLD),
   R('Mobility Equipment', 'crutches|wheelchair|walker|cane|shower chair|knee scooter|medical equipment', 'medloan', 'Medical equipment needs checking and fitting, and loan closets get it to the people who need it.', 'Medical Equipment'),
   R('Medicine', 'medicine|medicines|medication|medications|prescription|prescriptions|pills|antibiotics|insulin|inhaler|vitamins|tylenol|advil|ibuprofen', 'takeback', 'Pantries and shelters can\'t legally accept or hand out medicine, even sealed.', 'Medicine'),
-  R('Paint & Chemicals', 'paint|chemicals|chemical|motor oil|pesticide|pesticides|antifreeze|batteries|battery|propane|solvent|paint thinner|weed killer', 'hhw', 'Hazardous materials can leak in donation bins and are illegal to throw in the trash.', 'Hazardous Waste'),
+  R('Housewares & Media', 'pots and pans|pots|pans|trash can|trash cans|garbage can|watering can|can opener|dishes|plates|bowls set|cups|mugs|drinking glasses|silverware|utensils|kitchenware|cookware|housewares|rug|rugs|curtains|home decor|decor|picture frames|vase|vases|tent|tents|camping gear|sports equipment|helmet|helmets|textbooks|novels|adult books|magazines|dvds|cds|video games|jewelry|purses|handbags', 'goodwill',
+    'Food pantries and shelters don\'t hand out housewares or media, but Goodwill resells them to fund job programs.', 'Housewares'),
+  R('Eyeglasses', 'eyeglasses|glasses|reading glasses|prescription glasses|sunglasses|old glasses', 'lions', 'Pantries can\'t use eyeglasses, but Lions Clubs clean and match them to people who need them.', 'Eyeglasses'),
+  R('Paint & Chemicals', 'paint|chemicals|chemical|motor oil|pesticide|pesticides|antifreeze|batteries|battery|propane|solvent|paint thinner|weed killer|light bulbs|light bulb|cfl|fluorescent bulbs|fluorescent tubes', 'hhw', 'Hazardous materials can leak in donation bins and are illegal to throw in the trash.', 'Hazardous Waste'),
   R('Car Seat', 'car seat|carseat|booster seat|infant seat', 'carseat', 'Car seats expire and can be recalled or crash-damaged, so most charities can\'t safely pass them on.', 'Car Seats'),
 
   // --- Never accepted ---
+  X('Fresh Dairy, Meat & Frozen Food', 'fresh milk|gallon of milk|milk gallon|yogurt|cheese|butter|cream cheese|sour cream|ice cream|raw chicken|chicken|meat|raw meat|ground beef|beef|pork|steak|fish|raw fish|seafood|frozen pizza|frozen meals|frozen dinners|frozen meat|deli meat|hot dogs|lunch meat',
+    'These must stay cold the whole way, and walk-up donation bins and docks can\'t keep them safe, so pantries don\'t take them from individual donors.',
+    'Use it at home or share it with a neighbor, and choose canned or shelf-stable versions to donate.'),
+  X('Cakes & Pastries', 'cake|cakes|birthday cake|cupcakes|pie|pies|pastries|donuts|brownies|party leftovers|catering leftovers',
+    'Cakes and pastries spoil fast and many need refrigeration, so pantries can\'t hand them out safely.',
+    'Share them with neighbors or coworkers, and donate sealed snacks or baking mixes instead.'),
+  X('Used Pillows', 'pillow|pillows|used pillow|bed pillows', 'Used pillows can carry bed bugs and can\'t be cleaned at intake, so shelters and closets turn them away.', 'Use a textile recycling bin, or keep them as pet bedding at home.'),
+  X('Cribs', 'crib|cribs|bassinet|bassinets|drop side crib', 'Crib safety rules changed in 2011 and donation centers can\'t check older cribs, so most won\'t take them.', 'Check the date label: newer cribs with all parts can be sold or given directly to a family; older ones should be taken apart and recycled.'),
+  X('Tobacco & Vapes', 'cigarettes|cigarette|cigars|tobacco|vape|vapes|e cigarette', 'Pantries and shelters can\'t distribute tobacco or vaping products.', 'Dispose of them, or ask a pharmacy about cessation programs.'),
   X('Alcohol', 'alcohol|wine|beer|liquor|vodka|whiskey|tequila', 'Pantries and shelters can\'t distribute alcohol.', 'Unopened bottles can go to a school or nonprofit auction fundraiser.'),
   X('Homemade Food', 'homemade food|casserole|baked goods|home cooking|lasagna', 'Health codes don\'t allow pantries to give out food made in home kitchens.', 'Share it with a neighbor, or volunteer at a licensed community kitchen.'),
 ];
@@ -457,12 +478,16 @@ const CONDITIONS = [
     why: 'Intake volunteers can\'t wash donations, so stained or dirty items get sorted out and thrown away.', instead: 'Wash it and bring it next time, or use a textile recycling bin.' },
   { id: 'torn', resale: true, kw: 'torn|ripped|holes|hole|frayed|worn out|threadbare', g: 'cloth|new|gear|linen', label: 'Torn',
     why: 'Torn items can\'t be handed out, so they cost sorting time and get recycled anyway.', instead: 'Use a textile recycling bin instead.' },
-  { id: 'broken', resale: true, kw: 'broken|cracked|missing parts|not working|doesnt work|does not work', g: 'gear|petgear|pettoy', label: 'Broken',
+  { id: 'broken', resale: true, kw: 'broken|cracked|missing parts|missing pieces|incomplete|not working|doesnt work|does not work', g: 'gear|petgear|pettoy', label: 'Broken',
     why: 'Families and shelters can\'t use broken equipment, and they pay to haul it away.', instead: 'Check with the manufacturer for parts, or recycle it.' },
-  { id: 'used', kw: 'used|worn|secondhand|second hand|pre owned', g: 'new|baby', label: 'Used',
+  { id: 'used', kw: 'used|worn|secondhand|second hand|pre owned', g: 'new|baby|hygiene', label: 'Used',
     why: 'For hygiene, these must be brand new in the package.', instead: 'Use a textile recycling bin for worn socks and underwear.' },
   { id: 'plush', kw: 'plush|stuffed|stuffing', g: 'pettoy', label: 'Plush with stuffing',
     why: 'Shelter dogs shred plush toys in minutes, and swallowed stuffing can block their intestines.', instead: 'Bring durable rubber toys or tennis balls instead.' },
+  { id: 'loose', kw: 'loose|unpackaged|unwrapped|bulk bin|from the bulk bin|repackaged|repacked|resealed|relabeled|in a ziploc|in a ziplock|in a baggie', g: 'food|baby|petfood', label: 'Loose or repacked',
+    why: 'Pantries can only check food that is still in its original sealed store packaging, so loose or repacked food is thrown away.', instead: 'Use it at home, and donate items still sealed in their store packaging next time.' },
+  { id: 'frozen', kw: 'frozen|refrigerated|needs refrigeration|perishable|fresh dairy', g: 'food|baby', label: 'Needs refrigeration',
+    why: 'Frozen and refrigerated food must stay cold the whole way, and walk-up donation bins and docks can\'t keep it safe.', instead: 'Use it at home, and choose canned or shelf-stable versions to donate.' },
   { id: 'recalled', kw: 'recalled|recall', g: '*', label: 'Recalled',
     why: 'Recalled products can\'t legally be given away.', instead: 'Follow the manufacturer\'s recall instructions for a refund or repair.' },
 ];
@@ -513,9 +538,10 @@ function analyze(input) {
   // 2) Typo-tolerant fallback for single words ("jaket", "diapr")
   if (!item) {
     let best = 3;
-    for (const w of text.split(' ').filter(w => w.length >= 4)) for (const it of ITEMS) for (const k of it.kws) {
+    for (const w of text.split(' ').filter(w => w.length >= 5)) for (const it of ITEMS) for (const k of it.kws) {
       if (k.includes(' ') || k.length < 4) continue;
-      const d = levenshtein(w, k), limit = k.length >= 7 ? 2 : 1;
+      if (k[0] !== w[0]) continue;                       // typos rarely change the first letter
+      const d = levenshtein(w, k), limit = k.length >= 8 && w.length >= 8 ? 2 : 1;
       if (d <= limit && d < best) { best = d; item = it; }
     }
     if (item) item = { ...item, fuzzy: true };
@@ -598,7 +624,7 @@ function setTab(name) {
   });
   $('#panel-give').classList.toggle('hidden', name !== 'give');
   $('#panel-needs').classList.toggle('hidden', name !== 'needs');
-  if (name === 'give' && map) { map.invalidateSize(); fitMap(); }
+  if (name === 'give' && map && routeOpen) { map.invalidateSize(); fitMap(); }
 }
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => setTab(t.dataset.tab));
@@ -843,15 +869,7 @@ async function routeTrip() {
 }
 // Fill in miles and minutes without rebuilding the cards
 function updateTripNumbers() {
-  const t = totals(trip.stops), n = trip.stops.length, approx = trip.real ? '' : '~';
-  const el = $('#tripTotals');
-  if (el) el.textContent = `${approx}${t.mi.toFixed(1)} mi, ${approx}${t.min} min from ${start.label}`;
-  trip.stops.forEach((s, i) => {
-    const leg = document.querySelector(`[data-leg="${i}"]`);
-    if (leg) leg.textContent = `${approx}${s.leg.mi.toFixed(1)} mi · ${approx}${s.leg.min} min from ${i ? siteName(trip.stops[i - 1].site).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '') : start.label}`;
-  });
-  const title = $('#tripTitle');
-  if (title) title.textContent = tripTitle(n);
+  if (trip.stops.length > 1) renderRouteBox();
 }
 
 /* --- Starting-point menu --- */
@@ -931,8 +949,8 @@ const isDefault = () => source === 'pills' && selection.length === 1 && selectio
 function setBusy(on) {
   $('#askAI').disabled = on;
   $('#photoBtn').disabled = on;
-  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="route" class="h-4 w-4"></i>';
-  $('#askAILabel').textContent = on ? 'Sorting...' : 'Plan trip';
+  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="arrow-right" class="h-4 w-4"></i>';
+  $('#askAILabel').textContent = on ? 'Sorting...' : 'Find drop-offs';
   icons();
 }
 function cancelSearch() {
@@ -1067,7 +1085,12 @@ function fromAI(x) {
     const to = d === 'habitat_restore' ? 'restore' : (local.status === 'redirect' && REDIRECTS[local.item.to].places ? local.item.to : 'goodwill');
     return { ...entry, fixed: { kind: 'redirect', to, why: reason } };
   }
-  if (d === 'reject') return { ...entry, fixed: { kind: 'reject', why: reason || 'Local pantries can’t accept this item.', instead: typeof x.instead === 'string' ? x.instead.slice(0, 200) : '' } };
+  if (d === 'reject') {
+    // Never pass on unsafe advice: pantries can't take food that was repacked or resealed at home
+    let instead = typeof x.instead === 'string' ? x.instead.slice(0, 200) : '';
+    if (/re-?pack|re-?seal|re-?label|re-?date|ziplo|into (a |sealed |new )?container/i.test(instead)) instead = 'Use it at home or share it with a neighbor, and donate items still sealed in their store packaging next time.';
+    return { ...entry, fixed: { kind: 'reject', why: reason || 'Local pantries can’t accept this item.', instead } };
+  }
   if (d === 'other' || d === 'unknown') return { ...entry, ai: false };     // the local rules know the right specialist drop-off
   return null;
 }
@@ -1196,40 +1219,46 @@ const HOW = {
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
 const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${i.hot ? '<i data-lucide="flame" class="h-3 w-3 text-red-600"></i>' : ''}${esc(i.label)}</span>`;
 
-const tripTitle = (n) => n === 1 ? 'Your drop-off' : `Optimized ${n}-stop route`;
-function bannerHtml(stops) {
-  const t = totals(stops), n = stops.length;
-  return `
-    <section class="fade-up flex flex-wrap md:flex-nowrap items-center justify-between gap-x-5 gap-y-2 rounded-2xl bg-slate-900 text-white px-4 py-3">
-      <div class="min-w-0">
-        <p class="text-[14.5px] font-semibold">🚗 <span id="tripTitle">${tripTitle(n)}</span> <span class="text-slate-500">·</span> <span id="tripTotals" class="font-medium text-emerald-300">~${t.mi.toFixed(1)} mi, ~${t.min} min from ${esc(start.label)}</span></p>
-        ${n > 1 ? `<p class="mt-0.5 text-[13px] text-slate-300">${esc(cap(start.label))} → ${stops.map((s, i) => `${i + 1}. <span class="text-white">${shortName(s.site)}</span>`).join(' → ')}</p>` : ''}
-      </div>
-      <a target="_blank" rel="noopener" href="${fullTripUrl(stops)}" class="shrink-0 inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-500 px-3.5 text-[13px] font-semibold text-slate-950 whitespace-nowrap hover:bg-emerald-400 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
-    </section>`;
+let routeOpen = false;
+const tripTitle = (n) => `Visiting all ${n} places?`;
+function renderRouteBox() {
+  const box = $('#routeBox'), n = trip.stops.length;
+  box.hidden = !!pending || !!photoNote || n < 2;
+  if (box.hidden) return;
+  const t = totals(trip.stops), approx = trip.real ? '' : '~';
+  $('#tripTitle').textContent = tripTitle(n);
+  $('#tripTotals').textContent = `${approx}${t.mi.toFixed(1)} mi, ${approx}${t.min} min from ${start.label}`;
+  $('#routeSeq').innerHTML = `Shortest order: ${esc(cap(start.label))} → ${trip.stops.map((s, i) => `${i + 1}. <span class="font-medium text-slate-800">${shortName(s.site)}</span>`).join(' → ')}`;
+  $('#routeLink').href = fullTripUrl(trip.stops);
 }
+function setRouteOpen(open) {
+  routeOpen = open;
+  $('#routeBody').hidden = !open;
+  $('#routeToggle').setAttribute('aria-expanded', open);
+  $('#routeToggleLabel').textContent = open ? 'Hide route' : 'Plan route';
+  if (open && map) { map.invalidateSize(); fitMap(); }
+}
+$('#routeToggle').addEventListener('click', () => setRouteOpen(!routeOpen));
 function stopCard(s, i, stops) {
   const partner = !!SITES[s.site].partner;
   const orgs = [...s.orgs];
   const org = orgs.includes('closet') ? 'closet' : orgs[0];               // the Clothes Closet closes earliest
   const how = partner ? HOW[s.site] : s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
-  const from = i ? sitePlace(stops[i - 1].site) : startPlace();
   const tone = partner
     ? { border: 'border-amber-300', num: 'bg-amber-600', tag: 'border-amber-200 bg-amber-50 text-amber-900', link: 'text-amber-800 hover:text-amber-900' }
     : { border: 'border-emerald-300', num: 'bg-emerald-700', tag: 'border-emerald-200 bg-emerald-50 text-emerald-900', link: 'text-emerald-700 hover:text-emerald-800' };
   return `
     <article class="rounded-2xl border ${tone.border} bg-white p-4">
-      <div class="flex items-start gap-3">
-        <span class="mt-0.5 h-6 w-6 shrink-0 grid place-items-center rounded-full ${tone.num} text-white text-[12px] font-bold">${i + 1}</span>
-        <div class="min-w-0 flex-1">
+      <div>
+        <div class="min-w-0">
           <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
             <h3 class="text-[16px] font-semibold leading-snug">${siteName(s.site)}</h3>
             ${siteStatus(s.site, partner ? null : org)}
           </div>
-          <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')} · <span data-leg="${i}">~${s.leg.mi.toFixed(1)} mi · ~${s.leg.min} min from ${i ? shortName(stops[i - 1].site) : esc(start.label)}</span></p>
+          <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')}${partner ? ' · resells furniture, appliances and electronics' : ''}</p>
           <div class="mt-2.5 flex flex-wrap gap-1.5">${s.items.map(it => tag(it, tone.tag)).join('')}</div>
           <p class="mt-2.5 text-[13px] text-slate-600 leading-relaxed">${how}</p>
-          <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site), from)}" class="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold ${tone.link}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
+          <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site))}" class="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold ${tone.link}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
         </div>
       </div>
     </article>`;
@@ -1318,7 +1347,8 @@ function renderResults(items, animate) {
   left.innerHTML = `
     <div class="${animate ? 'fade-up' : ''} space-y-3">
       ${source === 'photo' && photo ? `
-      <p class="flex items-center gap-2.5 px-1 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo</p>` : ''}
+      <p class="flex items-center gap-2.5 px-1 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo</p>` : `
+      <h2 class="px-1 text-xs font-medium uppercase tracking-[0.08em] text-slate-400">Where your items go</h2>`}
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
       ${unknown.length ? unknownCard(unknown) : ''}
@@ -1339,7 +1369,7 @@ function render(animate = true) {
   const items = pending || photoNote ? [] : selection.map(resolve);
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);
-  $('#tripBanner').innerHTML = !pending && !photoNote && trip.stops.length ? bannerHtml(trip.stops) : '';
+  renderRouteBox();
   icons();
   routeTrip();
 }
@@ -1430,7 +1460,7 @@ function planNeed(label, org, note, hot) {
   selection = [{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }];
   setTab('give');
   render();
-  setTimeout(() => $('#tripBanner').scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  setTimeout(() => $('#resultLeft').scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
 }
 $('#needCard').addEventListener('click', (e) => {
   const nb = e.target.closest('[data-need]'), sb = e.target.closest('[data-staple]');
