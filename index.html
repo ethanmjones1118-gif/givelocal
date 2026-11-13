@@ -9,14 +9,12 @@
 <meta property="og:description" content="Type or snap a photo of what you want to donate. GiveLocal sorts every item and plans the shortest drop-off route across San Jose, Campbell and Milpitas." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#047857" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23047857'/%3E%3Cpath d='M16 23s-7-4.2-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 23 14c0 4.8-7 9-7 9z' fill='white'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 1.5C9.4 1.5 4.5 6.5 4.5 12.7c0 7.6 9.3 15.4 10.6 16.4a1.4 1.4 0 0 0 1.8 0c1.3-1 10.6-8.8 10.6-16.4C27.5 6.5 22.6 1.5 16 1.5z' fill='%23065F46'/%3E%3Cpath d='M16 18.1s-5-2.9-5-6.3a2.8 2.8 0 0 1 5-1.7 2.8 2.8 0 0 1 5 1.7c0 3.4-5 6.3-5 6.3z' fill='%23FDFCF8'/%3E%3C/svg%3E" />
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script>
   tailwind.config = {
     theme: {
@@ -58,29 +56,8 @@
   .drop-on #searchBox { border-color: #1C1917; box-shadow: 0 0 0 4px rgba(28,25,23,.08); }
   @media (prefers-reduced-motion: reduce) { .scan-line { display: none; } }
   @media (prefers-reduced-motion: reduce) { .fade-up, .spin, .chip-settle, .chip-out, .shake, .chip-sorting, .box-pulse, .tag-new, .count-pop { animation: none; } }
-  .leaflet-container { font-family: inherit; background: #F1F5F9; }
-  .leaflet-popup-content { margin: 12px 14px; }
-  .leaflet-popup-content p { margin: 0; }
-  .leaflet-popup-content-wrapper { border-radius: 12px; }
-  .leaflet-tooltip.site-tip { background: #0F172A; color: #fff; border: 0; border-radius: 6px; padding: 3px 7px; font-size: 11px; font-weight: 600; box-shadow: none; }
-  .leaflet-tooltip.site-tip::before { border-top-color: #0F172A; }
-  .leaflet-tooltip-left.site-tip::before { border-top-color: transparent; border-left-color: #0F172A; }
-  .leaflet-tooltip-right.site-tip::before { border-top-color: transparent; border-right-color: #0F172A; }
-  .leaflet-tooltip-left.site-tip.dim::before { border-left-color: #fff; }
-  .leaflet-tooltip-bottom.site-tip::before { border-top-color: transparent; border-bottom-color: #0F172A; }
-  .leaflet-tooltip-bottom.site-tip.dim::before { border-bottom-color: #fff; }
-  .leaflet-tooltip-right.site-tip.dim::before { border-right-color: #fff; }
-  .leaflet-tooltip.site-tip.dim { background: #fff; color: #475569; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
-  .leaflet-tooltip-top.site-tip.dim::before { border-top-color: #fff; }
-  .leaflet-tooltip.site-tip.start { background: #2563EB; }
-  .leaflet-tooltip.site-tip.start::before { border-top-color: transparent; border-bottom-color: #2563EB; }
   button, a, select { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
-  #routeToggle[aria-expanded="true"] .route-chev { transform: rotate(180deg); }
-  .trip-pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9999px; border: 3px solid #fff; color: #fff; font: 700 13px/1 Inter, system-ui, sans-serif; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
-  .trip-pin.green { background: #047857; }
-  .trip-pin.amber { background: #B45309; }
-  .leaflet-tooltip-left.site-tip::before, .leaflet-tooltip-right.site-tip::before { border-top-color: transparent; }
   :focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
 </style>
 </head>
@@ -91,11 +68,11 @@
   <!-- Top bar -->
   <nav class="topbar sticky z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur">
     <div class="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center gap-2.5">
-      <span class="h-7 w-7 rounded-full bg-emerald-800 grid place-items-center shrink-0">
-        <i data-lucide="hand-heart" class="h-3.5 w-3.5 text-white"></i>
-      </span>
-      <span class="font-display font-semibold whitespace-nowrap text-[17px]">GiveLocal</span>
-      <span class="hidden sm:inline text-[13px] text-stone-500 whitespace-nowrap">South Bay</span>
+      <a href="./" class="flex items-center gap-2 shrink-0 rounded-md" aria-label="GiveLocal South Bay, home">
+        <svg class="h-[26px] w-[22px] shrink-0" viewBox="0 0 26 30" aria-hidden="true"><path d="M13 1C6.4 1 1.5 6 1.5 12.2c0 7.6 9.3 15.4 10.6 16.4a1.4 1.4 0 0 0 1.8 0c1.3-1 10.6-8.8 10.6-16.4C24.5 6 19.6 1 13 1z" fill="#065F46"/><path d="M13 17.6s-5-2.9-5-6.3a2.8 2.8 0 0 1 5-1.7 2.8 2.8 0 0 1 5 1.7c0 3.4-5 6.3-5 6.3z" fill="#FDFCF8"/></svg>
+        <span class="font-display font-semibold whitespace-nowrap text-[19px] tracking-[-0.01em]">Give<i class="font-medium text-emerald-800">Local</i></span>
+      </a>
+      <span class="hidden sm:inline border-l border-stone-300 pl-2.5 ml-0.5 text-[12.5px] text-stone-500 whitespace-nowrap">South Bay</span>
       <button id="needsLink" type="button" aria-pressed="false" aria-label="What pantries need" class="ml-auto shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-semibold text-stone-700 hover:bg-stone-100 whitespace-nowrap transition"><i data-lucide="clipboard-list" class="h-4 w-4"></i><span class="sm:hidden">Needs</span><span class="hidden sm:inline">What pantries need</span></button>
     </div>
   </nav>
@@ -137,23 +114,6 @@
       <div class="scroll-mt-16 mt-8 border-t border-stone-300/70 pt-7 min-[960px]:mt-1 min-[960px]:border-0 min-[960px]:pt-0"><h2 class="font-display text-[24px] font-medium tracking-[-0.01em]">Where to take it</h2></div>
       <div id="resultLeft" class="mt-4 scroll-mt-24" aria-live="polite"></div>
 
-      <!-- Optional: one route for donors visiting several places -->
-      <section id="routeBox" hidden class="mt-3 rounded-2xl border border-stone-200 bg-white overflow-hidden">
-        <button id="routeToggle" type="button" aria-expanded="false" aria-controls="routeBody" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-stone-50 transition">
-          <span class="min-w-0 text-[14px]">🚗 <span id="tripTitle" class="font-semibold"></span> <span id="tripTotals" class="text-stone-500"></span></span>
-          <span class="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-700"><span id="routeToggleLabel">Plan route</span><i data-lucide="chevron-down" class="h-4 w-4 route-chev transition-transform"></i></span>
-        </button>
-        <div id="routeBody" hidden class="border-t border-stone-200">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-            <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0"></span>
-            <label for="startSel" class="text-[13px] text-stone-600 whitespace-nowrap">Starting from</label>
-            <select id="startSel" class="min-w-0 h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
-            <a id="routeLink" target="_blank" rel="noopener" href="#" class="ml-auto inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white whitespace-nowrap hover:bg-emerald-700 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
-          </div>
-          <p id="routeSeq" class="px-4 pb-3 -mt-1 text-[13px] text-stone-600"></p>
-          <div class="relative isolate"><div id="map" class="h-[300px] sm:h-[360px] bg-stone-100"></div></div>
-        </div>
-      </section>
       </div>
     </section>
 
@@ -172,7 +132,7 @@
 
     <footer class="mt-16 text-xs text-stone-400 leading-relaxed max-w-3xl">
       Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go.
-      Map tiles © Esri (Esri, HERE, Garmin, OpenStreetMap contributors); driving routes from the OSRM demo server.
+      Directions open in Google Maps.
       <a href="#" id="resetDemo" class="ml-1 underline decoration-stone-300 underline-offset-2 hover:text-stone-600">Reset demo data</a>
     </footer>
   </main>
@@ -642,7 +602,6 @@ function setTab(name) {
     ? '<i data-lucide="arrow-left" class="h-4 w-4"></i><span class="sm:hidden">Back</span><span class="hidden sm:inline">Back to donating</span>'
     : '<i data-lucide="clipboard-list" class="h-4 w-4"></i><span class="sm:hidden">Needs</span><span class="hidden sm:inline">What pantries need</span>';
   icons();
-  if (!needsView && map && routeOpen) { map.invalidateSize(); fitMap(); }
 }
 $('#needsLink').addEventListener('click', () => {
   setTab($('#panel-needs').classList.contains('hidden') ? 'needs' : 'give');
@@ -652,16 +611,8 @@ $('#needsLink').addEventListener('click', () => {
 /* =====================================================================
    WHERE THE DONOR STARTS
    ===================================================================== */
-const STARTS = {
-  campbell:   { label: 'Campbell',          place: 'Campbell, CA',          lat: 37.2872, lng: -121.9500 },
-  downtown:   { label: 'Downtown San Jose', place: 'Downtown San Jose, CA', lat: 37.3382, lng: -121.8863 },
-  north:      { label: 'North San Jose',    place: 'North San Jose, CA',    lat: 37.3894, lng: -121.9281 },
-  santaclara: { label: 'Santa Clara',       place: 'Santa Clara, CA',       lat: 37.3541, lng: -121.9552 },
-  milpitas:   { label: 'Milpitas',          place: 'Milpitas, CA',          lat: 37.4323, lng: -121.8996 },
-};
-const START_KEY = 'givelocal-start';
-let startKey = 'campbell', start = { ...STARTS.campbell };
-try { const k = localStorage.getItem(START_KEY); if (k && STARTS[k]) { startKey = k; start = { ...STARTS[k] }; } } catch (_) {}
+// Stops are ordered from the middle of San Jose; Google Maps then starts the trip from the donor's own location
+const start = { label: 'San Jose', lat: 37.3382, lng: -121.8863 };
 
 const rad = (d) => d * Math.PI / 180;
 function haversineMi(a, b) {
@@ -678,10 +629,13 @@ const estLeg = (a, b) => { const mi = haversineMi(a, b) * 1.3; return { mi, min:
 const siteName = (k) => SITES[k].partner ? PARTNERS[k].name : ORGS[k].name;
 const siteAddr = (k) => SITES[k].partner ? PARTNERS[k].address : ORGS[k].address;
 const sitePlace = (k) => `${siteName(k)}, ${siteAddr(k)}`;
-const startPlace = () => startKey === 'gps' ? `${start.lat},${start.lng}` : start.place;
 const gmapsDir = (place, from) => `https://www.google.com/maps/dir/?api=1${from ? `&origin=${encodeURIComponent(from)}` : ''}&destination=${encodeURIComponent(place)}&travelmode=driving`;
-// One link for the whole trip: /maps/dir/Origin/Stop1/Stop2/...
-const fullTripUrl = (stops) => 'https://www.google.com/maps/dir/' + [startPlace(), ...stops.map(s => sitePlace(s.site))].map(p => encodeURIComponent(p).replace(/%20/g, '+')).join('/');
+// One link for the whole trip. No origin, so Google Maps starts from the donor's current location.
+const fullTripUrl = (stops) => {
+  const places = stops.map(s => sitePlace(s.site));
+  const dest = places.pop();
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}${places.length ? `&waypoints=${encodeURIComponent(places.join('|'))}` : ''}&travelmode=driving`;
+};
 
 function openState(o) {
   const h = todayHours(o);
@@ -696,99 +650,7 @@ const siteStatus = (k, org) => SITES[k].partner
   ? '<span class="text-[12.5px] text-stone-500">Hours vary · check before you go</span>'
   : openBadge(ORGS[org || k]);
 
-/* =====================================================================
-   MAP (Leaflet + OpenStreetMap)
-   ===================================================================== */
-let map = null, baseMarkers = {}, startMarker = null, tripLayer = null;
 let trip = { stops: [] };          // the current optimized trip
-let tripSeq = 0;                   // ignores route answers that arrive after the plan changed
-
-function popupHtml(k) {
-  const idx = trip.stops.findIndex(s => s.site === k);
-  const hours = SITES[k].partner
-    ? '<p class="mt-1 text-[12px] text-stone-500">Hours vary, so check before you go.</p>'
-    : `<p class="mt-1 text-[12px] text-stone-600">${hoursLine(ORGS[k])}${k === 'sacred' ? ' (Clothes Closet to 3:30 PM)' : ''}</p><p class="mt-0.5">${openBadge(ORGS[k])}</p>`;
-  return `
-    <div class="font-sans">
-      ${idx >= 0 ? `<p class="text-[11px] font-semibold uppercase tracking-[0.06em] text-emerald-700">Stop ${idx + 1} on your trip</p>` : ''}
-      <p class="text-[14px] font-semibold text-stone-900 leading-snug">${siteName(k)}</p>
-      <p class="mt-0.5 text-[12px] text-stone-600">${siteAddr(k)}</p>
-      ${hours}
-      <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k), startPlace())}" class="mt-2.5 inline-flex items-center h-8 rounded-lg bg-stone-900 px-2.5 text-[12px] font-semibold !text-white hover:bg-stone-700">Directions from ${esc(start.label)} ↗</a>
-    </div>`;
-}
-const numberIcon = (n, partner) => L.divIcon({
-  className: '',
-  html: `<span class="trip-pin ${partner ? 'amber' : 'green'}">${n}</span>`,
-  iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14], tooltipAnchor: [0, -14],
-});
-
-function initMap() {
-  if (!window.L) {
-    $('#map').innerHTML = '<div class="h-full grid place-items-center text-sm text-stone-500 px-6 text-center">The map could not load. The Google Maps buttons still work.</div>';
-    return;
-  }
-  map = L.map('map', { scrollWheelZoom: false, maxZoom: 16 }).setView([37.37, -121.91], 11);
-  // Light gray basemap so the green route and pins stand out (CARTO's tiles now need an API key)
-  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
-  L.tileLayer(ESRI + 'World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors' }).addTo(map);
-  L.tileLayer(ESRI + 'World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, pane: 'shadowPane' }).addTo(map);
-  map.attributionControl.setPrefix(false);
-  // Every place has a small grey pin; stops on the trip get a numbered pin instead
-  for (const k of Object.keys(SITES)) {
-    baseMarkers[k] = L.circleMarker([SITES[k].lat, SITES[k].lng], { radius: 6, weight: 2, color: '#fff', fillColor: '#94A3B8', fillOpacity: 0.85 })
-      .bindPopup(() => popupHtml(k), { minWidth: 220, maxWidth: 260 })
-      .bindTooltip(SITES[k].label, { direction: 'top', offset: [0, -8], className: 'site-tip dim' })
-      .addTo(map);
-  }
-  tripLayer = L.layerGroup().addTo(map);
-  startMarker = L.circleMarker([start.lat, start.lng], { radius: 8, weight: 3, color: '#fff', fillColor: '#2563EB', fillOpacity: 1 })
-    .addTo(map)
-    .bindPopup(() => `<div class="font-sans"><p class="text-[14px] font-semibold text-stone-900">Starting from ${esc(start.label)}</p><p class="mt-0.5 text-[12px] text-stone-600">Change it with the menu above the map.</p></div>`)
-    .bindTooltip('Start', { permanent: true, direction: 'bottom', offset: [0, 8], className: 'site-tip start' });
-  if (window.ResizeObserver) new ResizeObserver(() => { map.invalidateSize(); fitMap(); }).observe($('#map'));
-}
-
-// Instant fits: animated zooms can be dropped (for example in a background tab) and leave the wrong area showing
-let fitTimer = 0;
-function fitMap() {
-  if (!map) return;
-  clearTimeout(fitTimer);
-  fitTimer = setTimeout(() => {
-    const b = L.latLngBounds([[start.lat, start.lng]]);
-    (trip.stops.length ? trip.stops.map(s => s.site) : Object.keys(SITES)).forEach(k => b.extend([SITES[k].lat, SITES[k].lng]));
-    tripLayer.eachLayer(l => { if (l.getBounds) b.extend(l.getBounds()); });
-    map.stop();
-    // 50px all round, plus room for stop labels that sit to the left or right of their pins
-    const side = trip.stops.length ? 110 : 50;
-    map.fitBounds(b, { paddingTopLeft: [side, 50], paddingBottomRight: [side, 50], maxZoom: 13, animate: false });
-  }, 30);
-}
-
-function drawTripMarkers() {
-  if (!map) return;
-  tripLayer.clearLayers();
-  const onTrip = new Set(trip.stops.map(s => s.site));
-  for (const [k, m] of Object.entries(baseMarkers)) {
-    if (onTrip.has(k)) { if (map.hasLayer(m)) m.remove(); }
-    else if (!map.hasLayer(m)) m.addTo(map);
-  }
-  trip.stops.forEach((s, i) => {
-    L.marker([SITES[s.site].lat, SITES[s.site].lng], { icon: numberIcon(i + 1, SITES[s.site].partner), zIndexOffset: 1000 })
-      .bindPopup(() => popupHtml(s.site), { minWidth: 220, maxWidth: 260 })
-      .bindTooltip(SITES[s.site].label, { permanent: true, direction: i % 2 ? 'left' : 'right', offset: i % 2 ? [-12, 0] : [12, 0], className: 'site-tip' })
-      .addTo(tripLayer);
-  });
-  startMarker.setLatLng([start.lat, start.lng]).bringToFront();
-}
-function drawTripLine(coords, real) {
-  if (!map) return;
-  tripLayer.eachLayer(l => { if (l instanceof L.Polyline) tripLayer.removeLayer(l); });
-  if (!coords || coords.length < 2) return;
-  L.polyline(coords, real
-    ? { color: '#047857', weight: 5, opacity: 0.85, lineJoin: 'round' }
-    : { color: '#047857', weight: 3, opacity: 0.7, dashArray: '6 8' }).addTo(tripLayer);
-}
 
 /* =====================================================================
    MULTI-STOP ROUTE OPTIMIZER
@@ -841,84 +703,6 @@ function optimizeTrip(items) {
   ordered.forEach(s => { s.leg = estLeg(prev, SITES[s.site]); s.legReal = false; prev = SITES[s.site]; });
   return ordered;
 }
-
-// One OSRM request for the whole trip: start;stop1;stop2;...
-const routeCache = new Map();
-async function fetchTripRoute(stops) {
-  const pts = [start, ...stops.map(s => SITES[s.site])];
-  const key = pts.map(p => `${p.lng.toFixed(5)},${p.lat.toFixed(5)}`).join(';');
-  if (routeCache.has(key)) return routeCache.get(key);
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 7000);
-    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${key}?overview=full&geometries=geojson`, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (!res.ok) throw new Error('route');
-    const r = (await res.json()).routes[0];
-    const out = {
-      ok: true,
-      coords: r.geometry.coordinates.map(([x, y]) => [y, x]),
-      legs: r.legs.map(l => ({ mi: l.distance / 1609.344, min: Math.max(1, Math.round(l.duration / 60)) })),
-    };
-    routeCache.set(key, out);
-    return out;
-  } catch (_) {
-    return { ok: false, coords: pts.map(p => [p.lat, p.lng]) };
-  }
-}
-const totals = (stops) => stops.reduce((t, s) => ({ mi: t.mi + s.leg.mi, min: t.min + s.leg.min }), { mi: 0, min: 0 });
-async function routeTrip() {
-  const seq = ++tripSeq;
-  drawTripMarkers();
-  if (!trip.stops.length) { drawTripLine(null); fitMap(); return; }
-  drawTripLine(trip.stops.length ? [start, ...trip.stops.map(s => SITES[s.site])].map(p => [p.lat, p.lng]) : null, false);
-  fitMap();
-  const r = await fetchTripRoute(trip.stops);
-  if (seq !== tripSeq) return;            // the plan changed while the route was loading
-  if (r.ok) trip.stops.forEach((s, i) => { s.leg = r.legs[i]; s.legReal = true; });
-  trip.real = r.ok;
-  drawTripLine(r.coords, r.ok);
-  fitMap();
-  updateTripNumbers();
-}
-// Fill in miles and minutes without rebuilding the cards
-function updateTripNumbers() {
-  if (trip.stops.length > 1) renderRouteBox();
-}
-
-/* --- Starting-point menu --- */
-const startSel = $('#startSel');
-startSel.innerHTML = Object.entries(STARTS).map(([k, s]) => `<option value="${k}">${s.label}</option>`).join('') + '<option value="gps">📍 My GPS</option>';
-startSel.value = startKey;
-function setStart(key, point) {
-  startKey = key; start = { ...point };
-  try { if (STARTS[key]) localStorage.setItem(START_KEY, key); } catch (_) {}
-  startSel.value = key;
-  render(false);
-}
-startSel.addEventListener('change', () => {
-  const key = startSel.value;
-  if (key !== 'gps') { setStart(key, STARTS[key]); return; }
-  const back = () => { startSel.value = startKey; };
-  if (!navigator.geolocation) { back(); toast('This browser can’t share a location. Pick a city instead.'); return; }
-  toast('Finding your location…');
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      // Rounded to about a block: plenty for a driving route, and kinder to your privacy
-      const here = { label: 'your location', place: '', lat: +pos.coords.latitude.toFixed(3), lng: +pos.coords.longitude.toFixed(3) };
-      const away = haversineMi(here, STARTS.downtown);
-      if (away > 60) {
-        setStart('downtown', STARTS.downtown);
-        toast(`You’re about ${Math.round(away / 10) * 10} miles from San Jose, so the trip starts from Downtown San Jose.`);
-        return;
-      }
-      setStart('gps', here);
-      toast('Using your location as the starting point');
-    },
-    () => { back(); toast('Couldn’t get your location. Still starting from ' + start.label + '.'); },
-    { timeout: 8000, maximumAge: 300000 }
-  );
-});
 
 /* =====================================================================
    TAB 1 STATE: one input at a time (pills OR a typed search)
@@ -1393,26 +1177,15 @@ const HOW = {
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
 const tag = (i, cls) => `<span class="${fresh.has(i.id) ? 'tag-new ' : ''}inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${esc(i.label)}${i.hot ? '<span class="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-red-700">needed</span>' : ''}</span>`;
 
-let routeOpen = false;
-const tripTitle = (n) => `Visiting all ${n} places?`;
-function renderRouteBox() {
-  const box = $('#routeBox'), n = trip.stops.length;
-  box.hidden = n < 2;
-  if (box.hidden) return;
-  const t = totals(trip.stops), approx = trip.real ? '' : '~';
-  $('#tripTitle').textContent = tripTitle(n);
-  $('#tripTotals').textContent = `${approx}${t.mi.toFixed(1)} mi, ${approx}${t.min} min from ${start.label}`;
-  $('#routeSeq').innerHTML = `Shortest order: ${esc(cap(start.label))} → ${trip.stops.map((s, i) => `${i + 1}. <span class="font-medium text-stone-800">${shortName(s.site)}</span>`).join(' → ')}`;
-  $('#routeLink').href = fullTripUrl(trip.stops);
+// Several places: one Google Maps trip through all of them, starting from the donor's location
+function tripButton() {
+  const n = trip.stops.length;
+  if (n < 2) return '';
+  return `<a target="_blank" rel="noopener" href="${fullTripUrl(trip.stops)}" class="flex items-center justify-between gap-4 rounded-2xl bg-stone-900 px-5 py-3.5 text-white hover:bg-stone-800 active:scale-[0.99] transition">
+    <span class="min-w-0"><span class="block text-[15px] font-semibold">Open all ${n} stops in Google Maps</span>
+      <span class="block mt-0.5 text-[12.5px] text-white/65 truncate">From your location · ${trip.stops.map((s, i) => `${i + 1}. ${shortName(s.site)}`).join(' → ')}</span></span>
+    <i data-lucide="arrow-up-right" class="h-5 w-5 shrink-0"></i></a>`;
 }
-function setRouteOpen(open) {
-  routeOpen = open;
-  $('#routeBody').hidden = !open;
-  $('#routeToggle').setAttribute('aria-expanded', open);
-  $('#routeToggleLabel').textContent = open ? 'Hide route' : 'Plan route';
-  if (open && map) { map.invalidateSize(); fitMap(); }
-}
-$('#routeToggle').addEventListener('click', () => setRouteOpen(!routeOpen));
 function stopCard(s, i, stops) {
   const partner = !!SITES[s.site].partner;
   const orgs = [...s.orgs];
@@ -1518,6 +1291,7 @@ function renderResults(items, animate) {
   left.innerHTML = `
     <div class="${animate ? 'fade-up' : ''} space-y-3">
       ${summaryLine(items)}
+      ${tripButton()}
       ${batches.length ? `<p class="flex items-center gap-2 px-1 text-[13px] text-stone-500" role="status"><i data-lucide="loader-2" class="h-3.5 w-3.5 spin text-emerald-700"></i>Adding “${esc(batches[batches.length - 1].text.slice(0, 50))}”…</p>` : ''}
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
@@ -1542,10 +1316,8 @@ function render(animate = true) {
   const items = all;
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);
-  renderRouteBox();
   icons();
   fresh.clear();
-  routeTrip();
 }
 
 /* =====================================================================
@@ -1611,7 +1383,7 @@ function renderNeedCard() {
         <div class="flex items-start gap-2">
           <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
           <div><p class="text-stone-800">${o.address}</p>
-            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site), startPlace())}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
+            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site))}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
         </div>
         <div class="flex items-start gap-2">
           <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
@@ -1696,6 +1468,8 @@ $('#staffForm').addEventListener('submit', (e) => {
 /* =====================================================================
    START
    ===================================================================== */
+// The logo returns to the main page without reloading (keeps the donor's list)
+document.querySelector('nav a[href="./"]').addEventListener('click', (e) => { e.preventDefault(); setTab('give'); scrollTo({ top: 0, behavior: 'smooth' }); });
 $('#resetDemo').addEventListener('click', (e) => {
   e.preventDefault();
   const link = e.currentTarget;
@@ -1719,7 +1493,6 @@ $('#resetDemo').addEventListener('click', (e) => {
 });
 loadState();
 buildNeedIndex();
-initMap();
 renderNeedCard();
 setTab('give');
 render();
