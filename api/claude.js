@@ -55,7 +55,8 @@ Destinations:
   car seats, crutches and wheelchairs.
 
 Examples: sealed candy and snacks -> second_harvest; fish food, bird seed and pet cages -> humane_society;
-grocery gift cards -> sacred_heart; adult books, textbooks, kitchenware and household items -> goodwill_sv;
+grocery gift cards -> sacred_heart; adult books, textbooks, kitchenware, household items, sports and outdoor gear
+(kayaks, golf clubs, camping gear, exercise equipment) and decor -> goodwill_sv;
 fresh milk, meat, frozen food and cakes -> reject (they need refrigeration); cribs and used pillows -> reject.
 Milk: plain "milk", a jug or a carton from the fridge (whole, 2%, organic, almond, oat) -> reject, labeled "Milk" or "Fresh Milk".
 Only milk clearly described or shown as shelf-stable (boxed UHT, powdered, evaporated, condensed, canned) -> second_harvest,
