@@ -46,7 +46,7 @@
   @keyframes shake { 0%, 100% { transform: translateX(0) } 20%, 60% { transform: translateX(-5px) } 40%, 80% { transform: translateX(5px) } }
   .shake { animation: shake 300ms ease-in-out; }
   @keyframes shimmer { from { background-position: 150% 0 } to { background-position: -50% 0 } }
-  .chip-sorting { background-image: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%); background-size: 220% 100%; animation: shimmer 1.2s linear infinite; }
+  .chip-sorting { background-image: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.8) 50%, transparent 65%); background-size: 220% 100%; animation: shimmer 1.2s linear infinite; }
   @keyframes boxPulse { 0% { box-shadow: 0 0 0 0 rgba(4,120,87,.4) } 100% { box-shadow: 0 0 0 14px rgba(4,120,87,0) } }
   .box-pulse { animation: boxPulse 500ms ease-out; }
   @keyframes tagNew { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.6); transform: scale(1.1) } 100% { box-shadow: 0 0 0 9px rgba(16,185,129,0); transform: scale(1) } }
@@ -105,7 +105,7 @@
 
 
     <!-- TAB 1 -->
-    <section id="panel-give" class="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-12 xl:gap-16 lg:items-start">
+    <section id="panel-give" class="min-[960px]:grid min-[960px]:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] min-[960px]:gap-10 xl:gap-16 min-[960px]:items-start">
       <div class="min-w-0">
       <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What are you giving away?</h1>
       <p class="mt-3 text-[15.5px] text-stone-600 max-w-[34rem]">Add each item and we’ll match it to the San Jose, Campbell or Milpitas drop-off that actually takes it.</p>
@@ -127,14 +127,14 @@
       <div id="chipTray" class="flex flex-wrap items-center gap-1.5 empty:hidden mt-3.5"></div>
       <p id="examples" class="mt-3 text-[13px] text-stone-500 leading-relaxed"></p>
 
-      <h2 class="mt-9 text-[12px] font-semibold uppercase tracking-[0.1em] text-stone-500">Or tap common items</h2>
+      <h2 class="mt-9"><button id="pillsToggle" type="button" aria-expanded="true" aria-controls="quickPills" class="inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-stone-500 hover:text-stone-900 disabled:pointer-events-none"><span id="pillsLabel">Or tap common items</span><i data-lucide="chevron-down" class="pills-chev h-3.5 w-3.5 transition-transform"></i></button></h2>
       <span id="selectionBar" hidden></span>
       <div id="quickPills" class="mt-3 flex flex-wrap gap-2"></div>
 
       </div>
 
-      <div class="min-w-0 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:-mx-2 lg:px-2 lg:pb-4">
-      <div class="mt-12 border-t border-stone-300/70 pt-8 lg:mt-1 lg:border-0 lg:pt-0"><h2 class="font-display text-[24px] font-medium tracking-[-0.01em]">Where to take it</h2></div>
+      <div class="min-w-0 min-[960px]:sticky min-[960px]:top-20 min-[960px]:max-h-[calc(100vh-6rem)] min-[960px]:overflow-y-auto min-[960px]:-mx-2 min-[960px]:px-2 min-[960px]:pb-4">
+      <div class="scroll-mt-16 mt-8 border-t border-stone-300/70 pt-7 min-[960px]:mt-1 min-[960px]:border-0 min-[960px]:pt-0"><h2 class="font-display text-[24px] font-medium tracking-[-0.01em]">Where to take it</h2></div>
       <div id="resultLeft" class="mt-4 scroll-mt-24" aria-live="polite"></div>
 
       <!-- Optional: one route for donors visiting several places -->
@@ -464,7 +464,7 @@ const ITEMS = [
   R('Car Seat', 'car seat|carseat|booster seat|infant seat', 'carseat', 'Car seats expire and can be recalled or crash-damaged, so most charities can\'t safely pass them on.', 'Car Seats'),
 
   // --- Never accepted ---
-  X('Fresh Dairy, Meat & Frozen Food', 'fresh milk|gallon of milk|milk gallon|yogurt|cheese|butter|cream cheese|sour cream|ice cream|raw chicken|chicken|meat|raw meat|ground beef|beef|pork|steak|fish|raw fish|seafood|frozen pizza|frozen meals|frozen dinners|frozen meat|deli meat|hot dogs|lunch meat',
+  X('Fresh Dairy, Meat & Frozen Food', 'fresh milk|gallon of milk|milk gallon|organic milk|whole milk|2% milk|1% milk|skim milk|nonfat milk|lowfat milk|low fat milk|reduced fat milk|lactose free milk|half gallon|milk jug|carton of milk|chocolate milk|yogurt|cheese|butter|cream cheese|sour cream|ice cream|raw chicken|chicken|meat|raw meat|ground beef|beef|pork|steak|fish|raw fish|seafood|frozen pizza|frozen meals|frozen dinners|frozen meat|deli meat|hot dogs|lunch meat',
     'These must stay cold the whole way, and walk-up donation bins and docks can\'t keep them safe, so pantries don\'t take them from individual donors.',
     'Use it at home or share it with a neighbor, and choose canned or shelf-stable versions to donate.'),
   X('Cakes & Pastries', 'cake|cakes|birthday cake|cupcakes|pie|pies|pastries|donuts|brownies|party leftovers|catering leftovers',
@@ -1022,27 +1022,42 @@ function renderBar(items) {
   const tray = $('#chipTray');
   if (!selection.length && !batches.length) { tray.innerHTML = ''; return; }
   let k = 0;
+  tray.className = 'flex flex-wrap items-center gap-1.5 mt-3';
   tray.innerHTML = items.map(i => {
     const delay = fresh.has(i.id) ? `style="animation-delay:${(k++) * 70}ms"` : '';
     const dot = CHIP[i.kind] || CHIP.unknown;
-    return `<span data-chip="${esc(i.id)}" class="chip inline-flex items-center gap-2 h-9 pl-3 pr-1 rounded-full bg-stone-900 text-white text-[13.5px] font-medium shadow-sm ${fresh.has(i.id) ? 'chip-settle' : ''}" ${delay}>
-      <span class="h-2 w-2 rounded-full ${dot}"></span><span class="max-w-[14rem] truncate">${esc(i.label)}</span>
-      <button type="button" data-unselect="${esc(i.id)}" aria-label="Remove ${esc(i.label)}" class="h-7 w-7 grid place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/15 transition"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
+    return `<span data-chip="${esc(i.id)}" class="chip inline-flex items-center gap-1.5 h-8 pl-2.5 pr-0.5 rounded-full border border-stone-200 bg-white text-stone-800 text-[13px] font-medium ${fresh.has(i.id) ? 'chip-settle' : ''}" ${delay}>
+      <span class="h-1.5 w-1.5 rounded-full ${dot}"></span><span class="max-w-[11rem] truncate">${esc(i.label)}</span>
+      <button type="button" data-unselect="${esc(i.id)}" aria-label="Remove ${esc(i.label)}" class="h-7 w-7 grid place-items-center rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
     </span>`;
   }).join('') + batches.map(b => `
-    <span data-batch="${b.id}" class="chip chip-sorting inline-flex items-center gap-2 h-9 px-3 rounded-full bg-stone-700 text-[13.5px] font-medium text-white/85">
-      <span class="h-2 w-2 rounded-full bg-white/40 animate-pulse"></span><span class="max-w-[14rem] truncate">${esc(b.text)}</span>
+    <span data-batch="${b.id}" class="chip chip-sorting inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border border-dashed border-stone-300 bg-stone-100 text-[13px] font-medium text-stone-500">
+      <span class="h-1.5 w-1.5 rounded-full bg-stone-400 animate-pulse"></span><span class="max-w-[14rem] truncate">${esc(b.text)}</span>
     </span>`).join('') + `
     <span class="ml-1 inline-flex items-center gap-2 text-[12.5px] text-stone-500"><span id="itemCount" class="font-semibold tabular-nums text-stone-700">${selection.length}</span> item${selection.length === 1 ? '' : 's'}
-      <button type="button" data-reset class="font-medium underline decoration-stone-300 underline-offset-2 hover:text-stone-900">Clear all</button></span>`;
+      <button type="button" data-reset class="font-medium underline decoration-stone-300 underline-offset-2 hover:text-stone-900">Clear all</button>
+      <button type="button" data-jump class="min-[960px]:hidden ml-1 inline-flex items-center gap-1 font-semibold text-stone-900">See drop-offs<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i></button></span>`;
 }
 let stripKey = '';
+let pillsOpen = false;
+function renderPills() {
+  const collapsible = selection.length > 0 || batches.length > 0;
+  const open = !collapsible || pillsOpen;
+  $('#quickPills').hidden = !open;
+  $('#pillsToggle').disabled = !collapsible;
+  $('#pillsToggle').setAttribute('aria-expanded', open);
+  $('#pillsLabel').textContent = collapsible ? 'Add common items' : 'Or tap common items';
+  const chev = document.querySelector('.pills-chev');
+  if (chev) { chev.style.display = collapsible ? '' : 'none'; chev.style.transform = open ? 'rotate(180deg)' : ''; }
+}
+document.addEventListener('click', (e) => { if (e.target.closest('[data-jump]')) $('#resultLeft').previousElementSibling.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); });
+document.addEventListener('click', (e) => { if (e.target.closest('#pillsToggle')) { pillsOpen = !pillsOpen; renderPills(); } });
 function renderPhotoStrip() {
   const el = $('#photoStrip');
-  if (!photo && !photoNote) { el.innerHTML = ''; return; }
+  if (!photo && !photoNote && !pending) { el.innerHTML = ''; return; }
   const thumb = photo ? `<span class="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-stone-200">
       <img src="${photo.url}" alt="Your photo" class="h-full w-full object-cover">${pending ? '<span class="scan-line"></span>' : ''}</span>`
-    : '<span class="h-14 w-14 shrink-0 grid place-items-center rounded-xl bg-stone-100 text-stone-400"><i data-lucide="image-off" class="h-5 w-5"></i></span>';
+    : `<span class="h-14 w-14 shrink-0 grid place-items-center rounded-xl bg-stone-100 text-stone-400"><i data-lucide="${pending ? 'camera' : 'image-off'}" class="h-5 w-5"></i></span>`;
   let body, actions = '';
   if (pending) {
     body = `<p class="text-[14px] font-semibold text-stone-900">Looking at your photo…</p><p class="text-[12.5px] text-stone-500">Picking out each item, usually a few seconds</p>`;
@@ -1058,6 +1073,14 @@ function renderPhotoStrip() {
   }
   const key = (photo ? photo.url : '') + '|' + (pending ? 'p' : photoNote ? 'n' : 'd') + photoCount;
   const fade = key !== stripKey; stripKey = key;
+  if (!pending && !photoNote && photo) {
+    el.innerHTML = `<div class="${fade ? 'fade-up ' : ''}flex items-center gap-2.5 text-[13px] text-stone-600">
+      <img src="${photo.url}" alt="Your photo" class="h-8 w-8 rounded-md object-cover">
+      <span>${photoCount} item${photoCount === 1 ? '' : 's'} from your photo</span><span class="text-stone-300">·</span>
+      <button type="button" data-photo-retry class="font-medium text-stone-800 underline decoration-stone-300 underline-offset-2 hover:decoration-stone-800">Scan another</button>
+      <button type="button" data-photo-dismiss aria-label="Hide photo" class="ml-auto h-7 w-7 grid place-items-center rounded-md text-stone-400 hover:bg-stone-100 hover:text-stone-900"><i data-lucide="x" class="h-3.5 w-3.5"></i></button></div>`;
+    return;
+  }
   el.innerHTML = `<div class="${fade ? 'fade-up ' : ''}flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-2.5 pr-2">
     ${thumb}<div class="min-w-0 flex-1">${body}<div class="mt-1.5 -ml-1 flex flex-wrap items-center gap-1 sm:hidden">${actions}</div></div>
     <div class="hidden sm:flex shrink-0 items-center gap-1">${actions}</div></div>`;
@@ -1275,14 +1298,13 @@ async function runPhoto(file) {
   if (!/^image\//.test(file.type || 'image/')) { photo = null; photoNote = 'That file isn’t a photo. Pick a JPEG, PNG or HEIC picture.'; render(false); return; }
   const seq = searchSeq, ctrl = new AbortController();
   searchCtrl = ctrl;
-  source = 'photo'; clearPhoto(); render(false);
+  source = 'photo'; clearPhoto();
+  pending = 'your photo'; setBusy(true); render(false);   // show the scanning card right away
   let shot;
   try { shot = await shrinkPhoto(file); }
-  catch (_) { photoNote = 'This photo couldn’t be opened. Try a JPEG or PNG, or type what you have.'; render(false); return; }
+  catch (_) { if (seq !== searchSeq) return; pending = ''; setBusy(false); photoNote = 'This photo couldn’t be opened. Try a JPEG or PNG, or type what you have.'; render(false); return; }
   if (seq !== searchSeq) { URL.revokeObjectURL(shot.url); return; }
   photo = { url: shot.url };
-  pending = 'your photo';
-  setBusy(true);
   buzz();
   render(false);
   let entries = null, found = false, status = 0;
@@ -1476,6 +1498,7 @@ function render(animate = true) {
   const all = selection.map(resolve);
   renderBar(all);
   renderPhotoStrip();
+  renderPills();
   const items = all;
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);

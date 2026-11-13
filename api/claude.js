@@ -18,6 +18,9 @@ export const config = { maxDuration: 30 };
 const PHOTO_PROMPT = `This is a photo of things someone wants to donate. List every distinct item you can see that
 someone might donate (group identical things: "3 cans of beans" is one item, "Canned Beans").
 Judge each item's condition from the photo: if food is clearly opened or a container is glass, use "reject".
+Milk in a jug or refrigerated carton, raw meat, and anything that needs a fridge or freezer are fresh perishables:
+use "reject" and label them plainly ("Fresh Milk", "Raw Chicken"). Only boxed shelf-stable milk is accepted.
+Keep labels short (1-3 words, e.g. "Chicken Breast", not "Boneless Skinless Chicken Breast").
 Ignore people, pets, furniture that is clearly part of the room, and the background. If you see no donatable
 items, return an empty list.`;
 
