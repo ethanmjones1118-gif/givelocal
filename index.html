@@ -134,13 +134,11 @@
     <!-- TAB 2 -->
     <section id="panel-needs" class="hidden max-w-3xl">
       <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What pantries need now</h1>
-      <p class="mt-3 mb-7 text-[15.5px] text-stone-600 max-w-[34rem]">Buying something to give? These are the items each organization is short on this week. Tap one to add it to your list.</p>
-      <div id="orgBtns" class="flex flex-wrap items-center gap-1.5"></div>
-      <div id="needCard" class="mt-5"></div>
-      <div class="mt-4 flex justify-end">
-        <button id="staffBtn" type="button" class="inline-flex items-center gap-1.5 h-10 rounded-xl border border-stone-200 bg-white px-3.5 text-sm font-medium text-stone-700 hover:border-stone-400 active:scale-[0.98] transition">
-          <i data-lucide="plus" class="h-4 w-4"></i>Staff Demo: add an urgent need
-        </button>
+      <p class="mt-3 text-[15.5px] text-stone-600 max-w-[34rem]">Buying something to give? Here’s what each place is short on this week.</p>
+      <div id="orgBtns" role="tablist" aria-label="Organizations" class="mt-8 flex sm:gap-6 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-stone-300/70"></div>
+      <div id="needCard" class="mt-6"></div>
+      <div class="mt-8 flex justify-end">
+        <button id="staffBtn" type="button" class="inline-flex items-center gap-1 text-[12.5px] font-medium text-stone-500 underline decoration-stone-300 underline-offset-4 hover:text-stone-900">Staff demo: add an urgent need</button>
       </div>
     </section>
 
@@ -1525,7 +1523,7 @@ function render(animate = true) {
    TAB 2: WHAT EACH ORGANIZATION NEEDS (every need is tappable)
    ===================================================================== */
 $('#orgBtns').innerHTML = NEED_ORGS.map(k => `
-  <button type="button" data-org="${k}" aria-pressed="false" class="org-btn inline-flex items-center rounded-full border px-3 py-2 text-[12.5px] font-medium whitespace-nowrap active:scale-[0.97] transition">${ORGS[k].name}</button>`).join('');
+  <button type="button" role="tab" data-org="${k}" aria-selected="false" class="org-btn -mb-px flex-1 sm:flex-none text-center sm:text-left border-b-2 border-transparent pb-3 pt-1 text-[13.5px] sm:text-[14.5px] font-medium text-stone-500 whitespace-nowrap hover:text-stone-900 transition">${shortName(ORGS[k].site)}</button>`).join('');
 $('#orgBtns').addEventListener('click', (e) => {
   const b = e.target.closest('[data-org]');
   if (!b) return;
@@ -1536,65 +1534,38 @@ $('#orgBtns').addEventListener('click', (e) => {
 function renderNeedCard() {
   document.querySelectorAll('.org-btn').forEach(b => {
     const on = b.dataset.org === selectedOrg;
-    b.setAttribute('aria-pressed', on);
-    b.classList.toggle('bg-stone-900', on); b.classList.toggle('border-stone-900', on); b.classList.toggle('text-white', on);
-    b.classList.toggle('bg-white', !on); b.classList.toggle('border-stone-200', !on); b.classList.toggle('text-stone-700', !on); b.classList.toggle('hover:border-stone-400', !on);
+    b.setAttribute('aria-selected', on);
+    b.classList.toggle('border-stone-900', on); b.classList.toggle('text-stone-900', on);
+    b.classList.toggle('border-transparent', !on); b.classList.toggle('text-stone-500', !on);
   });
   const o = ORGS[selectedOrg], n = needs[selectedOrg];
+  const label = (t) => `<p class="text-[12px] font-semibold uppercase tracking-[0.1em] text-stone-500">${t}</p>`;
   $('#needCard').innerHTML = `
-    <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-      <div class="p-5 sm:p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="min-w-0">
-            <h2 class="font-display text-[22px] font-medium leading-snug">${o.name}</h2>
-            <p class="mt-0.5 text-xs text-stone-500">Last updated ${ago(updated[selectedOrg])} · ${openBadge(o)}</p>
-          </div>
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-[13px] font-semibold">
-            <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>High-Demand Needs
-          </span>
-        </div>
-        <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          ${n.items.map((it, i) => `
-            <button type="button" data-need="${i}" class="group text-left p-4 rounded-xl border border-stone-200 bg-stone-50/60 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-[0.98] transition">
-              <span class="flex items-center gap-1.5">
-                <span class="inline-block rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600">${esc(it.program)}</span>
-                ${it.added ? '<span class="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-800">New</span>' : ''}
-              </span>
-              <span class="block mt-2.5 text-[15px] font-semibold leading-snug">${esc(it.title)}</span>
-              <span class="block mt-1.5 text-[13px] text-stone-600 leading-relaxed">${esc(it.spec)}</span>
-              <span class="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-emerald-700 group-hover:text-emerald-800"><i data-lucide="plus" class="h-3.5 w-3.5"></i>Add to my list</span>
-            </button>`).join('')}
-        </div>
+    <div class="fade-up">
+      <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 class="font-display text-[24px] font-medium leading-snug">${o.name}</h2>
+        <p class="text-[13px] text-stone-500">${openBadge(o)}</p>
+      </div>
+      <p class="mt-1 text-[13.5px] text-stone-500">${esc(o.address.replace(/, CA( \d+)?$/, ''))} · <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site))}" class="font-medium text-stone-800 underline decoration-stone-300 underline-offset-4 hover:decoration-stone-800">Directions</a> · Updated ${ago(updated[selectedOrg])}</p>
 
-        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><i data-lucide="check" class="h-4 w-4"></i>Everyday staples also accepted</p>
-            <div class="mt-2.5 flex flex-wrap gap-1.5">
-              ${n.staples.map((x, i) => `<button type="button" data-staple="${i}" class="rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-[12.5px] font-medium text-emerald-900 hover:bg-emerald-100 active:scale-[0.97] transition">${esc(x)}</button>`).join('')}
-            </div>
-          </div>
-          <div class="bg-rose-50/60 border border-rose-200 rounded-xl p-3.5 text-rose-900">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-rose-800"><i data-lucide="x" class="h-4 w-4"></i>Please do not bring</p>
-            <ul class="mt-2 space-y-1">${n.doNot.map(x => `<li class="flex items-start gap-2 text-[13px] leading-snug"><span class="mt-[7px] h-1 w-1 rounded-full shrink-0 bg-rose-500"></span>${esc(x)}</li>`).join('')}</ul>
-          </div>
-        </div>
+      <div class="mt-7">${label('Most needed this week')}</div>
+      <ul class="mt-3 overflow-hidden rounded-2xl border border-stone-200 bg-white divide-y divide-stone-100">
+        ${n.items.map((it, i) => `
+          <li><button type="button" data-need="${i}" class="group w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-stone-50 transition">
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2 text-[15.5px] font-semibold text-stone-900">${esc(it.title)}${it.added ? '<span class="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-amber-800">New</span>' : ''}</span>
+              <span class="block mt-0.5 text-[13.5px] text-stone-500 leading-relaxed">${esc(it.spec)}</span>
+            </span>
+            <span class="shrink-0 inline-flex items-center gap-1 h-9 rounded-full border border-stone-200 px-3.5 text-[13px] font-medium text-stone-700 group-hover:border-stone-900 group-hover:text-stone-900 transition"><i data-lucide="plus" class="h-3.5 w-3.5"></i>Add</span>
+          </button></li>`).join('')}
+      </ul>
+
+      <div class="mt-7">${label('Also welcome')}</div>
+      <div class="mt-3 flex flex-wrap gap-2">
+        ${n.staples.map((x, i) => `<button type="button" data-staple="${i}" class="inline-flex items-center gap-1 h-9 rounded-full border border-stone-200 bg-white px-3.5 text-[13.5px] font-medium text-stone-700 hover:border-stone-900 hover:text-stone-900 active:scale-[0.97] transition"><i data-lucide="plus" class="h-3.5 w-3.5 opacity-50"></i>${esc(x)}</button>`).join('')}
       </div>
 
-      <div class="px-5 sm:px-6 py-4 bg-stone-50 border-t border-stone-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <div class="flex items-start gap-2">
-          <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
-          <div><p class="text-stone-800">${o.address}</p>
-            <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site))}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
-        </div>
-        <div class="flex items-start gap-2">
-          <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
-          <p class="text-stone-800">${hoursLine(o)}</p>
-        </div>
-        <div class="sm:col-span-2 flex items-start gap-2">
-          <i data-lucide="car" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
-          <p class="text-stone-700"><span class="font-medium text-stone-900">When you arrive:</span> ${esc(n.arrival)}</p>
-        </div>
-      </div>
+      <p class="mt-7 text-[13.5px] text-stone-500 leading-relaxed"><span class="font-semibold text-stone-700">Please don’t bring:</span> ${n.doNot.map(esc).join(' · ')}</p>
     </div>`;
   icons();
 }
@@ -1602,7 +1573,7 @@ function renderNeedCard() {
 function planNeed(label, org, note, hot) {
   cancelSearch();
   source = 'search';
-  addEntries([{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }]);
+  addEntries([{ id: `need:${org}:${norm(label)}`, label: titleCase(label), q: label, fixed: { kind: 'accept', options: [org], hot, note } }]);
   setTab('give');
   render();
   setTimeout(() => $('#resultLeft').scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
