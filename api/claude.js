@@ -60,6 +60,7 @@ fresh milk, meat, frozen food and cakes -> reject (they need refrigeration); cri
 Milk: plain "milk", a jug or a carton from the fridge (whole, 2%, organic, almond, oat) -> reject, labeled "Milk" or "Fresh Milk".
 Only milk clearly described or shown as shelf-stable (boxed UHT, powdered, evaporated, condensed, canned) -> second_harvest,
 labeled "Shelf-stable Milk". Never relabel plain milk as shelf-stable.
+Read misspellings as the word the donor meant and spell the label correctly ("cloths" or "clotes" -> "Clothes", "jaket" -> "Jacket").
 When an item's condition is the problem, put it in the label ("Opened Cereal", "Broken Microwave").
 Only reject an item for a real reason from the list above; when in doubt, choose the place that takes that kind of item.
 Use "unknown" only when you truly can't tell what an item is.

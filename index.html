@@ -377,7 +377,7 @@ const ITEMS = [
   A('Pasta & Noodles', 'pasta|spaghetti|noodles|macaroni|mac and cheese|ramen|penne', 'harvest', 'food', 'Any unopened pasta, noodles or boxed mac and cheese.', H),
   A('Oats & Oatmeal', 'oats|oatmeal|rolled oats|instant oatmeal|grits', 'harvest', 'food', 'A filling breakfast staple, in unopened canisters or packets.', H),
   A('Cereal', 'cereal|granola|cheerios|corn flakes|breakfast cereal', 'harvest', 'food', 'Unopened boxes, and low-sugar cereals are preferred.', H),
-  A('Fresh Produce', 'produce|vegetables|veggies|fresh fruit|fruit|lettuce|carrots|potatoes|onions|tomatoes|apples|bananas|avocados|squash|zucchini|pumpkin|pumpkins|melon|watermelon|grapes|cucumbers|peppers|broccoli', 'harvest', 'food', 'Welcome when it\'s clean and dropped off early in the day.', H),
+  A('Fresh Produce', 'produce|vegetables|veggies|vegtables|vegetabels|vegatables|vegetable|fresh fruit|fruit|lettuce|carrots|potatoes|onions|tomatoes|apples|bananas|avocados|squash|zucchini|pumpkin|pumpkins|melon|watermelon|grapes|cucumbers|peppers|broccoli', 'harvest', 'food', 'Welcome when it\'s clean and dropped off early in the day.', H),
   A('Backyard Fruit', 'lemons|lemon|oranges|orange|persimmons|figs|plums|backyard fruit|tree fruit|citrus|grapefruit|loquats', 'harvest', 'food', 'Backyard harvests are welcome! Rinse, remove bruised fruit, and bring it in boxes.', H),
   A('Baby Formula', 'formula|baby formula|infant formula|similac|enfamil', 'sacred', 'baby', 'Must be unopened and in date. Formula is one of the most urgent infant needs.'),
   A('Baby Food', 'baby food|baby cereal|puree|purees|baby food pouches', 'sacred', 'baby', 'Unopened jars or pouches, in date.'),
@@ -395,10 +395,10 @@ const ITEMS = [
   A('Jam, Honey & Syrup', 'jam|jelly|honey|syrup|maple syrup', 'harvest', 'food', 'Welcome sealed, and plastic squeeze bottles are safest.', H),
 
   // --- Clothes Closet & family needs (Sacred Heart) ---
-  A('Coats & Jackets', 'coat|coats|winter coat|jacket|jackets|parka|raincoat|puffer|windbreaker', 'closet', 'cloth', 'Warm coats are needed most from November through March. Clean, with working zippers.'),
+  A('Coats & Jackets', 'coat|coats|winter coat|jacket|jackets|jaket|jakets|jackit|parka|raincoat|puffer|windbreaker', 'closet', 'cloth', 'Warm coats are needed most from November through March. Clean, with working zippers.'),
   A('Hoodies & Sweaters', 'hoodie|hoodies|sweatshirt|sweater|sweaters|fleece jacket|cardigan', 'closet', 'cloth', 'Clean, gently used layers are always welcome.'),
   A('Pants & Jeans', 'pants|jeans|trousers|slacks|shorts|leggings|sweatpants|work pants', 'closet', 'cloth', 'Jeans and work pants, especially men\'s sizes, move fastest.'),
-  A('Clothes', 'clothes|clothing|outfits|apparel|kids clothing|mens clothes|womens clothes', 'closet', 'cloth', 'Clean, gently used clothes in all sizes.'),
+  A('Clothes', 'clothes|clothing|cloths|clothe|clotes|cloaths|cloathes|clotheing|outfits|apparel|kids clothing|mens clothes|womens clothes', 'closet', 'cloth', 'Clean, gently used clothes in all sizes.'),
   A('Shirts', 'shirt|shirts|t shirt|t shirts|tshirt|tee|blouse|polo|button down|tops', 'closet', 'cloth', 'Clean, gently used shirts in all sizes.'),
   A('Shoes', 'shoes|shoe|sneakers|boots|sandals|work boots|heels|cleats', 'closet', 'cloth', 'Gently worn shoes with tread left. Tie or band each pair together.'),
   A('New Socks', 'socks|sock', 'closet', 'new', 'Socks are the most requested clothing item at shelters, and they must be brand new.'),
@@ -407,12 +407,12 @@ const ITEMS = [
   A('Baby Clothes', 'baby clothes|onesies|onesie|infant clothes|toddler clothes|kids clothes|children clothes', 'closet', 'cloth', 'Clean, gently used baby and kids\' clothes in all sizes.'),
   A('Hats, Gloves & Scarves', 'gloves|beanie|beanies|scarf|scarves|hat|hats|mittens|winter hat', 'closet', 'cloth', 'Warm accessories are easy to pack and always needed in winter.'),
   A('Sleeping Bags', 'sleeping bag|sleeping bags', 'closet', 'cloth', 'Critical for unhoused neighbors in winter. Clean, with working zippers.'),
-  A('Blankets & Comforters', 'blanket|blankets|comforter|comforters|quilt|throw blanket', 'closet', 'cloth', 'Warm, clean blankets go out quickly on cold weeks.'),
+  A('Blankets & Comforters', 'blanket|blankets|blankit|blankits|blanky|comforter|comforters|quilt|throw blanket', 'closet', 'cloth', 'Warm, clean blankets go out quickly on cold weeks.'),
   A('Diapers', 'diapers|diaper|pull ups|pullups|training pants', 'sacred', 'baby', 'Diapers are a top need, especially sizes 4–6.',
     { allow: { opened: 'Opened packs are welcome if the diapers are clean. Tape the pack shut and write the size on it.' } }),
   A('Baby Wipes', 'wipes|baby wipes|wet wipes', 'sacred', 'baby', 'Sealed packs, fragrance-free preferred.'),
   A('Strollers', 'stroller|strollers|pram|jogging stroller', 'sacred', 'gear', 'Clean strollers with working brakes and buckles help families get to appointments.'),
-  A('Backpacks', 'backpack|backpacks|bookbag|school bag|book bag', 'sacred', 'gear', 'Sturdy backpacks are in high demand in July–August and January.'),
+  A('Backpacks', 'backpack|backpacks|backpak|bakpack|bookbag|school bag|book bag', 'sacred', 'gear', 'Sturdy backpacks are in high demand in July–August and January.'),
   A('School Supplies', 'school supplies|notebooks|notebook|pencils|pencil|pens|crayons|markers|binders|folders|glue sticks|calculator|rulers', 'sacred', 'gear', 'New school supplies help kids start the year ready to learn.'),
   A('Children\'s Books', 'books|book|childrens books|kids books|picture books|board books', 'sacred', 'gear', 'Clean children\'s and bilingual books are favorites.'),
   A('Household Essentials', 'toilet paper|paper towels|tissues|kleenex|laundry detergent|detergent|laundry soap|laundry pods|dish soap|dishwasher pods|cleaning supplies|cleaning products|bleach|disinfectant wipes|trash bags|garbage bags|sponges', 'sacred', 'hygiene', 'Sealed household basics like toilet paper and detergent stretch a family\'s budget, and SNAP can\'t buy them.'),
@@ -1132,9 +1132,14 @@ function splitItems(text) {
     .filter(p => p.length > 1)
     .slice(0, 12);
 }
+// Common misspellings shown corrected ("Cloths" -> "Clothes")
+const SPELL = { cloths: 'clothes', clothe: 'clothes', clotes: 'clothes', cloaths: 'clothes', cloathes: 'clothes', clotheing: 'clothing',
+  jaket: 'jacket', jakets: 'jackets', jackit: 'jacket', blankit: 'blanket', blankits: 'blankets', backpak: 'backpack', bakpack: 'backpack',
+  vegtables: 'vegetables', vegetabels: 'vegetables', vegatables: 'vegetables', toothpast: 'toothpaste', diapres: 'diapers', shampo: 'shampoo' };
+const fixSpelling = (label) => label.replace(/[A-Za-z]+/g, w => { const f = SPELL[w.toLowerCase()]; return f ? (w[0] === w[0].toUpperCase() ? cap(f) : f) : w; });
 function localEntries(text) {
   const seen = new Set();
-  return splitItems(text).map(part => ({ id: `q:${norm(part)}`, label: cap(part).slice(0, 48), q: part }))
+  return splitItems(text).map(part => ({ id: `q:${norm(part)}`, label: cap(fixSpelling(part)).slice(0, 48), q: fixSpelling(part) }))
     .filter(en => norm(en.q) && !seen.has(en.id) && seen.add(en.id));
 }
 
@@ -1159,7 +1164,7 @@ function resolve(entry) {
 const AI_ORG = { sacred_heart: 'sacred', second_harvest: 'harvest', humane_society: 'humane' };
 function fromAI(x) {
   if (!x || typeof x.label !== 'string' || !x.label.trim()) return null;
-  const label = x.label.trim().slice(0, 48);
+  const label = fixSpelling(x.label.trim()).slice(0, 48);
   const reason = typeof x.reason === 'string' ? x.reason.slice(0, 220) : '';
   const local = analyze(label);
   const entry = { id: `ai:${norm(label)}`, label, q: label, ai: true };
