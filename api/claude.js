@@ -64,7 +64,7 @@ When an item's condition is the problem, put it in the label ("Opened Cereal", "
 Only reject an item for a real reason from the list above; when in doubt, choose the place that takes that kind of item.
 Use "unknown" only when you truly can't tell what an item is.
 For each item: "label" is a short Title Case name, "reason" is one friendly sentence under 25 words,
-"instead" is one short suggestion for rejected items and an empty string otherwise. Return at most 8 items.
+"instead" is one short suggestion for rejected items and an empty string otherwise. Return at most 12 items.
 "instead" must be safe, practical advice: use it at home, share it with a neighbor, compost, recycle, or buy a
 sealed version to donate next time. Never suggest repackaging, resealing, relabeling or re-dating food; pantries
 cannot accept food that was repacked at home.`;
@@ -142,7 +142,8 @@ export default async function handler(req, res) {
       if (left < 300) break;
       // Haiku 4.5 takes no effort setting; Haiku 5.5 answers fastest with thinking off
       const output_config = { format: { type: 'json_schema', schema: SCHEMA } };
-      const extra = model === 'claude-haiku-5-5' ? { thinking: { type: 'disabled' } } : {};
+      // Same input, same answer: no sampling randomness on the model that supports it
+      const extra = model === 'claude-haiku-5-5' ? { thinking: { type: 'disabled' } } : { temperature: 0 };
       if (model === 'claude-haiku-5-5') output_config.effort = 'low';
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -171,7 +172,7 @@ export default async function handler(req, res) {
     if (!block) return res.status(502).json({ error: 'no_result' });
 
     const data = JSON.parse(block.text);
-    return res.status(200).json({ items: Array.isArray(data.items) ? data.items.slice(0, 8) : [], model: msg.model });
+    return res.status(200).json({ items: Array.isArray(data.items) ? data.items.slice(0, 12) : [], model: msg.model });
   } catch {
     return res.status(502).json({ error: 'upstream_unreachable' });
   }

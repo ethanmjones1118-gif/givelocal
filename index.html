@@ -159,8 +159,8 @@
 
     <!-- TAB 2 -->
     <section id="panel-needs" class="hidden max-w-3xl">
-      <h2 class="text-[15px] font-semibold text-stone-900">What local pantries need most right now</h2>
-      <p class="mt-1 mb-4 text-[14px] text-stone-600">Tap a need to see where to drop it off.</p>
+      <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What pantries need now</h1>
+      <p class="mt-3 mb-7 text-[15.5px] text-stone-600 max-w-[34rem]">Buying something to give? These are the items each organization is short on this week. Tap one to add it to your list.</p>
       <div id="orgBtns" class="flex flex-wrap items-center gap-1.5"></div>
       <div id="needCard" class="mt-5"></div>
       <div class="mt-4 flex justify-end">
@@ -220,7 +220,7 @@
   </div>
 
   <!-- Toast -->
-  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -transtone-x-1/2 z-[1300] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -translate-x-1/2 z-[1300] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
 
 <script>
 /* =====================================================================
@@ -367,7 +367,7 @@ const ITEMS = [
   A('Canned Tuna', 'tuna|canned tuna|can of tuna', 'harvest', 'food', 'A top protein request. Pop-top cans packed in water are ideal.', H),
   A('Canned Chicken', 'canned chicken|chicken breast can|can of chicken', 'harvest', 'food', 'High-protein and easy for seniors. Pop-top cans preferred.', H),
   A('Beans', 'beans|black beans|pinto beans|kidney beans|garbanzo|chickpeas|refried beans|canned beans|lentils|dry beans', 'harvest', 'food', 'A pantry staple, canned or dry, any variety, unopened.', H),
-  A('Canned Soup & Chili', 'soup|chili|stew|canned soup|broth|chicken broth|stock|bouillon cubes', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
+  A('Canned Soup & Chili', 'soup|soups|chili|stew|canned soup|canned chili|chicken noodle soup|chicken soup|chicken and rice soup|noodle soup|tomato soup|vegetable soup|clam chowder|chowder|broth|chicken broth|stock|bouillon cubes', 'harvest', 'food', 'Hearty soups are great, and pop-top lids help clients without can openers.', H),
   A('Canned Vegetables', 'canned vegetables|canned veggies|canned corn|corn|green beans|peas|canned tomatoes|tomato sauce', 'harvest', 'food', 'Low-sodium canned vegetables are especially welcome.', H),
   A('Canned Fruit', 'canned fruit|fruit cups|fruit cup|applesauce|canned peaches|pineapple|mandarin oranges', 'harvest', 'food', 'Fruit packed in juice is preferred over heavy syrup.', H),
   A('Canned Meat & Fish', 'spam|canned meat|canned protein|pop top protein|vienna sausage|corned beef|canned salmon|sardines', 'harvest', 'food', 'Shelf-stable proteins are always in demand.', H),
@@ -382,14 +382,14 @@ const ITEMS = [
   A('Baby Formula', 'formula|baby formula|infant formula|similac|enfamil', 'sacred', 'baby', 'Must be unopened and in date. Formula is one of the most urgent infant needs.'),
   A('Baby Food', 'baby food|baby cereal|puree|purees|baby food pouches', 'sacred', 'baby', 'Unopened jars or pouches, in date.'),
   A('Spices & Seasonings', 'spices|spice|seasoning|seasonings|salt|pepper|herbs|bouillon', 'sacred', 'food', 'Sealed spices help families cook from basic staples.', S),
-  A('Bottled Water & Juice', 'bottled water|water bottles|water|juice|juice boxes|sports drinks|gatorade|electrolyte drinks', 'harvest', 'food', 'Sealed bottled water and juice in plastic are welcome, especially in summer heat waves.', H),
+  A('Bottled Water & Juice', 'bottled water|water bottles|water|juice|apple juice|orange juice|grape juice|soda|sodas|soft drinks|sparkling water|juice boxes|sports drinks|gatorade|electrolyte drinks', 'harvest', 'food', 'Sealed bottled water and juice in plastic are welcome, especially in summer heat waves.', H),
   A('Gift Cards & Money', 'gift card|gift cards|grocery gift cards|cash|money|check|donation money', 'sacred', 'gear', 'Grocery gift cards let families buy fresh food; cash goes furthest as an online gift, since pantries buy food at wholesale prices.'),
   A('Shelf-stable Milk', 'shelf stable milk|boxed milk|milk boxes|milk box|uht milk|powdered milk|dry milk|evaporated milk|condensed milk|sweetened condensed milk|coconut milk|shelf stable almond milk|shelf stable oat milk|shelf stable soy milk|boxed almond milk|boxed oat milk|boxed soy milk|canned milk', 'harvest', 'food', 'Unopened boxed or powdered milk is a top request.', H),
   A('Egg Cartons', 'egg carton|egg cartons|empty egg cartons|egg crate', 'sacred', 'gear', 'Clean 12-count cartons are reused to repack bulk eggs for families!'),
   A('Fresh Eggs', 'eggs|egg|dozen eggs', 'sacred', 'food', 'Store-bought sealed eggs are welcome. Keep them cold and bring them early.'),
   A('Flour & Baking Staples', 'flour|sugar|baking mix|pancake mix|cornmeal|masa|cake mix', 'harvest', 'food', 'Sealed baking staples are welcome.', H),
-  A('Crackers & Snacks', 'crackers|snacks|chips|pretzels|granola bars|protein bars|cereal bars|energy bars|trail mix|nuts|dried fruit|raisins|cookies|store bought cookies|candy|halloween candy|chocolate', 'harvest', 'food', 'Sealed snacks are great for kids\' school lunches.', H),
-  A('Pasta Sauce & Salsa', 'pasta sauce|marinara|salsa|spaghetti sauce', 'harvest', 'food', 'Welcome sealed, and cans or plastic jars travel best.', H),
+  A('Crackers & Snacks', 'crackers|snacks|beef jerky|jerky|meat sticks|chips|pretzels|granola bars|protein bars|cereal bars|energy bars|trail mix|nuts|dried fruit|raisins|cookies|store bought cookies|candy|halloween candy|chocolate', 'harvest', 'food', 'Sealed snacks are great for kids\' school lunches.', H),
+  A('Sauces & Condiments', 'pasta sauce|marinara|salsa|spaghetti sauce|ketchup|mustard|mayonnaise|mayo|bbq sauce|barbecue sauce|soy sauce|hot sauce|salad dressing|condiments|sauces', 'harvest', 'food', 'Welcome sealed, and cans or plastic jars travel best.', H),
   A('Coffee & Tea', 'coffee|tea|hot chocolate|cocoa', 'harvest', 'food', 'Sealed coffee and tea are a small comfort many families miss.', H),
   A('Bread & Tortillas', 'bread|tortillas|tortilla|bagels|buns|pita', 'sacred', 'food', 'Store-bought bread is welcome the same day. Bring it early.'),
   A('Jam, Honey & Syrup', 'jam|jelly|honey|syrup|maple syrup', 'harvest', 'food', 'Welcome sealed, and plastic squeeze bottles are safest.', H),
@@ -415,6 +415,7 @@ const ITEMS = [
   A('Backpacks', 'backpack|backpacks|bookbag|school bag|book bag', 'sacred', 'gear', 'Sturdy backpacks are in high demand in July–August and January.'),
   A('School Supplies', 'school supplies|notebooks|notebook|pencils|pencil|pens|crayons|markers|binders|folders|glue sticks|calculator|rulers', 'sacred', 'gear', 'New school supplies help kids start the year ready to learn.'),
   A('Children\'s Books', 'books|book|childrens books|kids books|picture books|board books', 'sacred', 'gear', 'Clean children\'s and bilingual books are favorites.'),
+  A('Household Essentials', 'toilet paper|paper towels|tissues|kleenex|laundry detergent|detergent|laundry soap|laundry pods|dish soap|dishwasher pods|cleaning supplies|cleaning products|bleach|disinfectant wipes|trash bags|garbage bags|sponges', 'sacred', 'hygiene', 'Sealed household basics like toilet paper and detergent stretch a family\'s budget, and SNAP can\'t buy them.'),
   A('Toiletries', 'toothpaste|toothbrush|toothbrushes|shampoo|conditioner|soap|body wash|deodorant|lotion|toiletries|razors|hotel soap|travel size|band aids|bandaids|bandages|first aid|first aid kit|sunscreen|hand sanitizer', 'sacred', 'hygiene', 'Full-size hygiene items are a constant need and rarely donated.'),
   A('Menstrual Products', 'pads|tampons|menstrual|period products|feminine hygiene|panty liners', 'sacred', 'hygiene', 'A top request that\'s rarely donated. Sealed boxes only.'),
   A('Kids\' Toys', 'toy|toys|lego|legos|board game|board games|puzzle|puzzles|doll|dolls|stuffed animal|stuffed animals', 'sacred', 'gear', 'New or like-new toys are welcome, especially before the holidays.'),
@@ -447,6 +448,8 @@ const ITEMS = [
     'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
   R('Furniture', 'furniture|table|tables|dining table|coffee table|dresser|dressers|desk|desks|bookshelf|bookcase|chair|chairs|office chair|stool|nightstand|cabinet|lamp|lamps|floor lamp|ottoman|bed frame|headboard|high chair', 'restore',
     'Food banks and Sacred Heart\'s clothes closet can\'t take furniture: they have no warehouse space or trucks for it.', 'Furniture', HOUSEHOLD),
+  R('Large Appliances', 'refrigerator|refrigerators|fridge|mini fridge|washing machine|washer|dryer|washer and dryer|dishwasher|stove|oven|range|freezer|chest freezer|large appliances', 'restore',
+    'Food pantries have no way to move, test or store large appliances, but ReStore resells working ones.', 'Appliances', HOUSEHOLD),
   R('Microwave', 'microwave|microwaves', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
   R('Toaster', 'toaster|toasters|toaster oven|air fryer', 'goodwill', 'Food pantries can\'t safety-test or store electrical appliances.', 'Appliances', HOUSEHOLD),
   R('Small Appliances', 'blender|blenders|coffee maker|kettle|rice cooker|instant pot|slow cooker|crockpot|mixer|vacuum|fan|space heater|heater|appliance|appliances|iron', 'goodwill',
@@ -457,7 +460,7 @@ const ITEMS = [
   R('Bicycle', 'bike|bikes|bicycle|bicycles|scooter|tricycle', 'bike', 'Food pantries have no room or mechanics to repair and store bikes.', 'Bikes', HOUSEHOLD),
   R('Mobility Equipment', 'crutches|wheelchair|walker|cane|shower chair|knee scooter|medical equipment', 'medloan', 'Medical equipment needs checking and fitting, and loan closets get it to the people who need it.', 'Medical Equipment'),
   R('Medicine', 'medicine|medicines|medication|medications|prescription|prescriptions|pills|antibiotics|insulin|inhaler|vitamins|tylenol|advil|ibuprofen', 'takeback', 'Pantries and shelters can\'t legally accept or hand out medicine, even sealed.', 'Medicine'),
-  R('Housewares & Media', 'pots and pans|pots|pans|trash can|trash cans|garbage can|watering can|can opener|dishes|plates|bowls set|cups|mugs|drinking glasses|silverware|utensils|kitchenware|cookware|housewares|rug|rugs|curtains|home decor|decor|picture frames|vase|vases|tent|tents|camping gear|sports equipment|helmet|helmets|textbooks|novels|adult books|magazines|dvds|cds|video games|jewelry|purses|handbags', 'goodwill',
+  R('Housewares & Media', 'pots and pans|pots|pans|trash can|trash cans|garbage can|watering can|can opener|dishes|plates|bowls set|cups|mugs|drinking glasses|silverware|utensils|kitchenware|cookware|housewares|rug|rugs|curtains|home decor|decor|picture frames|vase|vases|tent|tents|camping gear|sports equipment|helmet|helmets|textbooks|novels|adult books|magazines|dvds|cds|video games|jewelry|purses|handbags|costume|costumes|halloween costume|halloween costumes|decorations|christmas decorations|holiday decorations|wine glasses|glassware|picture frame', 'goodwill',
     'Food pantries and shelters don\'t hand out housewares or media, but Goodwill resells them to fund job programs.', 'Housewares'),
   R('Eyeglasses', 'eyeglasses|glasses|reading glasses|prescription glasses|sunglasses|old glasses', 'lions', 'Pantries can\'t use eyeglasses, but Lions Clubs clean and match them to people who need them.', 'Eyeglasses'),
   R('Paint & Chemicals', 'paint|chemicals|chemical|motor oil|pesticide|pesticides|antifreeze|batteries|battery|propane|solvent|paint thinner|weed killer|light bulbs|light bulb|cfl|fluorescent bulbs|fluorescent tubes', 'hhw', 'Hazardous materials can leak in donation bins and are illegal to throw in the trash.', 'Hazardous Waste'),
@@ -1041,7 +1044,7 @@ function renderBar(items) {
 let stripKey = '';
 let pillsOpen = false;
 function renderPills() {
-  const collapsible = selection.length > 0 || batches.length > 0;
+  const collapsible = (selection.length > 0 || batches.length > 0) && innerWidth < 960;   // wide screens have room to keep them open
   const open = !collapsible || pillsOpen;
   $('#quickPills').hidden = !open;
   $('#pillsToggle').disabled = !collapsible;
@@ -1052,6 +1055,7 @@ function renderPills() {
 }
 document.addEventListener('click', (e) => { if (e.target.closest('[data-jump]')) $('#resultLeft').previousElementSibling.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' }); });
 document.addEventListener('click', (e) => { if (e.target.closest('#pillsToggle')) { pillsOpen = !pillsOpen; renderPills(); } });
+addEventListener('resize', () => renderPills());
 function renderPhotoStrip() {
   const el = $('#photoStrip');
   if (!photo && !photoNote && !pending) { el.innerHTML = ''; return; }
@@ -1126,7 +1130,7 @@ function splitItems(text) {
       return part;
     })
     .filter(p => p.length > 1)
-    .slice(0, 10);
+    .slice(0, 12);
 }
 function localEntries(text) {
   const seen = new Set();
@@ -1160,6 +1164,7 @@ function fromAI(x) {
   const local = analyze(label);
   const entry = { id: `ai:${norm(label)}`, label, q: label, ai: true };
   const d = x.destination;
+  if ((local.item && !local.item.fuzzy) || local.status === 'reject') return { ...entry, ai: false };
   if (AI_ORG[d]) {
     if (local.status === 'reject') return { ...entry, ai: false };            // e.g. "opened cereal": the safety rule wins
     let org = AI_ORG[d];
@@ -1234,6 +1239,16 @@ function flyChip(batchId) {
     if (t) { t.style.visibility = ''; replay(t, 'chip-settle'); }
   }
 }
+const AI_CACHE_KEY = 'givelocal-sorted-v1';
+let aiCache = {};
+try { aiCache = JSON.parse(sessionStorage.getItem(AI_CACHE_KEY) || '{}') || {}; } catch (_) {}
+const aiCacheGet = (t) => aiCache[norm(t)] || null;
+function aiCacheSet(t, items) {
+  aiCache[norm(t)] = items;
+  const keys = Object.keys(aiCache);
+  if (keys.length > 60) delete aiCache[keys[0]];
+  try { sessionStorage.setItem(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch (_) {}
+}
 async function addTyped(raw) {
   const text = raw.trim().slice(0, 400);
   if (!text) { replay($('#searchBox'), 'shake'); input.focus(); return; }
@@ -1247,14 +1262,15 @@ async function addTyped(raw) {
   let entries = null;
   const timer = setTimeout(() => b.ctrl.abort(), AI_TIMEOUT_MS);
   try {
-    const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: b.ctrl.signal });
-    if (res.ok) {
-      const data = await res.json();
-      const seen = new Set();
-      const got = (data && Array.isArray(data.items) ? data.items : []).slice(0, 8).map(fromAI)
-        .filter(en => en && !seen.has(en.id) && seen.add(en.id));
-      if (got.length) entries = got;
+    // The same words always get the same answer: reuse an earlier result for this text
+    let raw = aiCacheGet(text);
+    if (!raw) {
+      const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: b.ctrl.signal });
+      if (res.ok) { const data = await res.json(); raw = data && Array.isArray(data.items) ? data.items : null; if (raw && raw.length) aiCacheSet(text, raw); }
     }
+    const seen = new Set();
+    const got = (raw || []).slice(0, 12).map(fromAI).filter(en => en && !seen.has(en.id) && seen.add(en.id));
+    if (got.length) entries = got;
   } catch (_) { /* slow, offline or not deployed: the local parser answers */ }
   clearTimeout(timer);
   if (!batches.includes(b)) return;      // cleared while sorting
@@ -1318,7 +1334,7 @@ async function runPhoto(file) {
       const data = await res.json();
       found = true;
       const seen = new Set();
-      entries = (data && Array.isArray(data.items) ? data.items : []).slice(0, 8).map(fromAI)
+      entries = (data && Array.isArray(data.items) ? data.items : []).slice(0, 12).map(fromAI)
         .filter(en => en && !seen.has(en.id) && seen.add(en.id));
     }
   } catch (_) { /* handled below */ }
@@ -1551,24 +1567,23 @@ function renderNeedCard() {
       <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0">
-            <h2 class="text-xl font-semibold tracking-tight">${o.name}</h2>
+            <h2 class="font-display text-[22px] font-medium leading-snug">${o.name}</h2>
             <p class="mt-0.5 text-xs text-stone-500">Last updated ${ago(updated[selectedOrg])} · ${openBadge(o)}</p>
           </div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-[13px] font-semibold">
             <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>High-Demand Needs
           </span>
         </div>
-        <p class="mt-4 text-[13px] text-stone-500">Tap a need to see where to drop it off and get a route.</p>
-        <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
           ${n.items.map((it, i) => `
             <button type="button" data-need="${i}" class="group text-left p-4 rounded-xl border border-stone-200 bg-stone-50/60 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-[0.98] transition">
               <span class="flex items-center gap-1.5">
                 <span class="inline-block rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600">${esc(it.program)}</span>
                 ${it.added ? '<span class="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-800">New</span>' : ''}
               </span>
-              <span class="block mt-2.5 text-[15px] font-bold leading-snug">${esc(it.title)}</span>
+              <span class="block mt-2.5 text-[15px] font-semibold leading-snug">${esc(it.title)}</span>
               <span class="block mt-1.5 text-[13px] text-stone-600 leading-relaxed">${esc(it.spec)}</span>
-              <span class="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-emerald-700 group-hover:text-emerald-800">Plan this drop-off<i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></span>
+              <span class="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-emerald-700 group-hover:text-emerald-800"><i data-lucide="plus" class="h-3.5 w-3.5"></i>Add to my list</span>
             </button>`).join('')}
         </div>
 
