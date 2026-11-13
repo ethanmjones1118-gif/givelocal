@@ -16,12 +16,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <script>
   tailwind.config = {
     theme: {
       extend: {
-        fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'] },
+        fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'], display: ['Fraunces', 'Georgia', 'serif'] },
         colors: { ink: '#0F172A' },
       },
     },
@@ -29,8 +29,8 @@
 </script>
 <style>
   /* Deliberately a single light look: every color below is explicit. */
-  :root { color-scheme: light; --paper: #FAF9F6; --ink: #0F172A; --water: #DCE9F2; --land: #F3F2EC; --road: #E2C99A; }
-  body { background: var(--paper); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; -webkit-font-smoothing: antialiased; }
+  :root { color-scheme: light; --paper: #F6F3EC; --ink: #1C1917; --water: #DCE9F2; --land: #F3F2EC; --road: #E2C99A; }
+  body { background: var(--paper); color: var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px; -webkit-font-smoothing: antialiased; }
   body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: #fff; }
   .topbar { top: env(safe-area-inset-top, 0px); }
   [data-lucide], .lucide { stroke-width: 1.75; }
@@ -38,7 +38,26 @@
   .fade-up { animation: fadeUp 240ms ease-out; }
   @keyframes spin { to { transform: rotate(360deg) } }
   .spin { animation: spin 0.9s linear infinite; }
-  @media (prefers-reduced-motion: reduce) { .fade-up, .spin { animation: none; } }
+  /* Typed items snap into the list */
+  @keyframes chipSettle { 0% { transform: scale(1) } 30% { transform: scale(1.16) } 60% { transform: scale(.95) } 100% { transform: scale(1) } }
+  .chip-settle { animation: chipSettle 420ms cubic-bezier(.3,.7,.4,1) both; }
+  @keyframes chipOut { to { transform: scale(.3); opacity: 0 } }
+  .chip-out { animation: chipOut 170ms ease-in forwards; pointer-events: none; }
+  @keyframes shake { 0%, 100% { transform: translateX(0) } 20%, 60% { transform: translateX(-5px) } 40%, 80% { transform: translateX(5px) } }
+  .shake { animation: shake 300ms ease-in-out; }
+  @keyframes shimmer { from { background-position: 150% 0 } to { background-position: -50% 0 } }
+  .chip-sorting { background-image: linear-gradient(100deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%); background-size: 220% 100%; animation: shimmer 1.2s linear infinite; }
+  @keyframes boxPulse { 0% { box-shadow: 0 0 0 0 rgba(4,120,87,.4) } 100% { box-shadow: 0 0 0 14px rgba(4,120,87,0) } }
+  .box-pulse { animation: boxPulse 500ms ease-out; }
+  @keyframes tagNew { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.6); transform: scale(1.1) } 100% { box-shadow: 0 0 0 9px rgba(16,185,129,0); transform: scale(1) } }
+  .tag-new { animation: tagNew 750ms ease-out; }
+  @keyframes countPop { 0% { transform: scale(1) } 40% { transform: scale(1.35) } 100% { transform: scale(1) } }
+  .count-pop { animation: countPop 360ms ease-out; }
+  @keyframes scanLine { 0% { top: -10% } 100% { top: 105% } }
+  .scan-line { position: absolute; left: 0; right: 0; height: 22%; background: linear-gradient(to bottom, rgba(52,211,153,0), rgba(52,211,153,.55) 85%, rgba(236,253,245,.95)); animation: scanLine 1.4s cubic-bezier(.45,0,.55,1) infinite alternate; }
+  .drop-on #searchBox { border-color: #1C1917; box-shadow: 0 0 0 4px rgba(28,25,23,.08); }
+  @media (prefers-reduced-motion: reduce) { .scan-line { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .fade-up, .spin, .chip-settle, .chip-out, .shake, .chip-sorting, .box-pulse, .tag-new, .count-pop { animation: none; } }
   .leaflet-container { font-family: inherit; background: #F1F5F9; }
   .leaflet-popup-content { margin: 12px 14px; }
   .leaflet-popup-content p { margin: 0; }
@@ -58,7 +77,7 @@
   button, a, select { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   #routeToggle[aria-expanded="true"] .route-chev { transform: rotate(180deg); }
-  .trip-pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9999px; border: 3px solid #fff; color: #fff; font: 700 13px/1 "Plus Jakarta Sans", system-ui, sans-serif; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
+  .trip-pin { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9999px; border: 3px solid #fff; color: #fff; font: 700 13px/1 Inter, system-ui, sans-serif; box-shadow: 0 1px 4px rgba(15,23,42,.35); }
   .trip-pin.green { background: #047857; }
   .trip-pin.amber { background: #B45309; }
   .leaflet-tooltip-left.site-tip::before, .leaflet-tooltip-right.site-tip::before { border-top-color: transparent; }
@@ -70,126 +89,124 @@
 
 
   <!-- Top bar -->
-  <nav class="topbar sticky z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-    <div class="max-w-5xl mx-auto px-5 sm:px-6 h-16 flex items-center gap-3">
-      <span class="h-8 w-8 rounded-lg bg-emerald-700 grid place-items-center shrink-0">
-        <i data-lucide="hand-heart" class="h-4 w-4 text-white"></i>
+  <nav class="topbar sticky z-50 border-b border-stone-200/80 bg-white/90 backdrop-blur">
+    <div class="max-w-3xl mx-auto px-5 sm:px-6 h-14 flex items-center gap-2.5">
+      <span class="h-7 w-7 rounded-full bg-emerald-800 grid place-items-center shrink-0">
+        <i data-lucide="hand-heart" class="h-3.5 w-3.5 text-white"></i>
       </span>
-      <span class="font-semibold tracking-tight whitespace-nowrap text-[15px] sm:text-base">GiveLocal South Bay</span>
-      <span class="hidden sm:inline-flex items-center rounded-full bg-slate-100 text-slate-500 text-xs px-2.5 py-1 whitespace-nowrap">San Jose · Campbell · Milpitas</span>
-      <button id="needsLink" type="button" aria-pressed="false" aria-label="What pantries need" class="ml-auto shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-100 whitespace-nowrap transition"><i data-lucide="clipboard-list" class="h-4 w-4"></i><span class="sm:hidden">Needs</span><span class="hidden sm:inline">What pantries need</span></button>
+      <span class="font-display font-semibold whitespace-nowrap text-[17px]">GiveLocal</span>
+      <span class="hidden sm:inline text-[13px] text-stone-500 whitespace-nowrap">South Bay</span>
+      <button id="needsLink" type="button" aria-pressed="false" aria-label="What pantries need" class="ml-auto shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-semibold text-stone-700 hover:bg-stone-100 whitespace-nowrap transition"><i data-lucide="clipboard-list" class="h-4 w-4"></i><span class="sm:hidden">Needs</span><span class="hidden sm:inline">What pantries need</span></button>
     </div>
   </nav>
 
-  <main class="max-w-5xl mx-auto px-5 sm:px-6 pt-7 sm:pt-9 pb-20">
+  <main class="max-w-3xl mx-auto px-5 sm:px-6 pt-10 sm:pt-14 pb-20">
 
-    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">Where should your donations go?</h1>
-    <p class="mt-1.5 text-[15px] text-slate-600">Tell us what you have and we’ll show you exactly where to take it.</p>
+    <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What are you giving away?</h1>
+    <p class="mt-3 text-[15.5px] text-stone-600 max-w-[34rem]">Add each item and we’ll match it to the San Jose, Campbell or Milpitas drop-off that actually takes it.</p>
 
     <!-- TAB 1 -->
-    <section id="panel-give" class="mt-6">
-      <h2 class="flex items-center gap-2 text-[15px] font-semibold text-slate-900"><span class="h-6 w-6 grid place-items-center rounded-full bg-emerald-700 text-white text-[12px] font-bold">1</span>Type what you have</h2>
-      <form id="searchForm" autocomplete="off" class="mt-2.5 max-w-3xl">
+    <section id="panel-give" class="mt-8">
+      <form id="searchForm" autocomplete="off">
         <label for="searchInput" class="sr-only">Describe what you want to donate</label>
-        <div class="flex items-center gap-2 sm:gap-3 rounded-2xl bg-white border border-slate-200 shadow-sm pl-4 sm:pl-5 pr-2.5 h-14 focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 transition">
-          <i data-lucide="search" class="hidden sm:block h-5 w-5 text-slate-400 shrink-0"></i>
-          <input id="searchInput" type="text" enterkeyhint="search" maxlength="400"
-            class="flex-1 min-w-0 bg-transparent text-base sm:text-lg placeholder:text-slate-400 focus:outline-none" />
+        <div id="searchBox" class="flex items-center gap-2 rounded-2xl bg-white border border-stone-300 shadow-[0_1px_0_rgba(28,25,23,.04),0_8px_24px_-12px_rgba(28,25,23,.18)] pl-5 pr-2 h-[60px] focus-within:border-stone-900 transition">
+                    <input id="searchInput" type="text" enterkeyhint="enter" maxlength="400"
+            class="flex-1 min-w-0 bg-transparent text-[17px] placeholder:text-stone-400 focus:outline-none" />
           <input id="photoInput" type="file" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true" />
-          <button id="photoBtn" type="button" aria-label="Scan a photo of your donation pile" title="Scan a photo of your donation pile" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 hover:border-emerald-600 hover:text-emerald-800 active:scale-[0.97] disabled:opacity-60 transition">
-            <i data-lucide="camera" class="h-4 w-4"></i><span class="hidden sm:inline">Scan photo</span>
+          <button id="photoBtn" type="button" aria-label="Scan a photo of your donation pile" title="Scan a photo of your donation pile" class="shrink-0 inline-flex items-center gap-1.5 h-11 rounded-xl px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 active:scale-[0.97] disabled:opacity-50 transition">
+            <i data-lucide="camera" class="h-[18px] w-[18px]"></i><span class="hidden sm:inline">Photo</span>
           </button>
-          <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-10 rounded-xl bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-700 active:scale-[0.97] disabled:opacity-70 transition">
-            <span id="askAIIcon" class="grid place-items-center"><i data-lucide="arrow-right" class="h-4 w-4"></i></span><span id="askAILabel">Find drop-offs</span>
+          <button id="askAI" type="submit" class="shrink-0 inline-flex items-center gap-1.5 h-11 rounded-xl bg-stone-900 px-4 text-sm font-semibold text-white hover:bg-stone-700 active:scale-[0.96] transition">
+            <i data-lucide="corner-down-left" class="h-4 w-4"></i><span>Add</span>
           </button>
         </div>
       </form>
-      <p id="examples" class="mt-2 px-1 text-[13px] text-slate-500 leading-relaxed"></p>
+      <div id="photoStrip" class="empty:hidden mt-3.5"></div>
+      <div id="chipTray" class="flex flex-wrap items-center gap-1.5 empty:hidden mt-3.5"></div>
+      <p id="examples" class="mt-3 text-[13px] text-stone-500 leading-relaxed"></p>
 
-      <div class="mt-7 flex items-center justify-between gap-3">
-        <h2 class="flex items-center gap-2 text-[15px] font-semibold text-slate-900"><span class="h-6 w-6 grid place-items-center rounded-full bg-emerald-700 text-white text-[12px] font-bold">2</span>Or tap what you have</h2>
-        <span id="selectionBar" class="scroll-mt-24 text-[13px]"></span>
-      </div>
-      <div id="quickPills" class="mt-2.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 sm:gap-2"></div>
+      <h2 class="mt-9 text-[12px] font-semibold uppercase tracking-[0.1em] text-stone-500">Or tap common items</h2>
+      <span id="selectionBar" hidden></span>
+      <div id="quickPills" class="mt-3 flex flex-wrap gap-2"></div>
 
-      <h2 class="mt-8 flex items-center gap-2 text-[15px] font-semibold text-slate-900"><i data-lucide="map-pin" class="h-5 w-5 text-emerald-700"></i>Where to take it</h2>
-      <div id="resultLeft" class="mt-2.5 max-w-3xl scroll-mt-24" aria-live="polite"></div>
+      <div class="mt-12 border-t border-stone-300/70 pt-8"><h2 class="font-display text-[24px] font-medium tracking-[-0.01em]">Where to take it</h2></div>
+      <div id="resultLeft" class="mt-4 scroll-mt-24" aria-live="polite"></div>
 
       <!-- Optional: one route for donors visiting several places -->
-      <section id="routeBox" hidden class="mt-3 max-w-3xl rounded-2xl border border-slate-200 bg-white overflow-hidden">
-        <button id="routeToggle" type="button" aria-expanded="false" aria-controls="routeBody" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition">
-          <span class="min-w-0 text-[14px]">🚗 <span id="tripTitle" class="font-semibold"></span> <span id="tripTotals" class="text-slate-500"></span></span>
+      <section id="routeBox" hidden class="mt-3 rounded-2xl border border-stone-200 bg-white overflow-hidden">
+        <button id="routeToggle" type="button" aria-expanded="false" aria-controls="routeBody" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-stone-50 transition">
+          <span class="min-w-0 text-[14px]">🚗 <span id="tripTitle" class="font-semibold"></span> <span id="tripTotals" class="text-stone-500"></span></span>
           <span class="shrink-0 inline-flex items-center gap-1 text-[13px] font-semibold text-emerald-700"><span id="routeToggleLabel">Plan route</span><i data-lucide="chevron-down" class="h-4 w-4 route-chev transition-transform"></i></span>
         </button>
-        <div id="routeBody" hidden class="border-t border-slate-200">
+        <div id="routeBody" hidden class="border-t border-stone-200">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
             <span class="h-2.5 w-2.5 rounded-full bg-blue-600 ring-2 ring-blue-200 shrink-0"></span>
-            <label for="startSel" class="text-[13px] text-slate-600 whitespace-nowrap">Starting from</label>
-            <select id="startSel" class="min-w-0 h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
+            <label for="startSel" class="text-[13px] text-stone-600 whitespace-nowrap">Starting from</label>
+            <select id="startSel" class="min-w-0 h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm font-medium focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
             <a id="routeLink" target="_blank" rel="noopener" href="#" class="ml-auto inline-flex items-center gap-1 h-9 rounded-lg bg-emerald-600 px-3.5 text-[13px] font-semibold text-white whitespace-nowrap hover:bg-emerald-700 active:scale-[0.98] transition">Open in Google Maps<i data-lucide="arrow-up-right" class="h-4 w-4"></i></a>
           </div>
-          <p id="routeSeq" class="px-4 pb-3 -mt-1 text-[13px] text-slate-600"></p>
-          <div class="relative isolate"><div id="map" class="h-[300px] sm:h-[360px] bg-slate-100"></div></div>
+          <p id="routeSeq" class="px-4 pb-3 -mt-1 text-[13px] text-stone-600"></p>
+          <div class="relative isolate"><div id="map" class="h-[300px] sm:h-[360px] bg-stone-100"></div></div>
         </div>
       </section>
     </section>
 
     <!-- TAB 2 -->
     <section id="panel-needs" class="hidden mt-6 max-w-3xl">
-      <h2 class="text-[15px] font-semibold text-slate-900">What local pantries need most right now</h2>
-      <p class="mt-1 mb-4 text-[14px] text-slate-600">Tap a need to see where to drop it off.</p>
+      <h2 class="text-[15px] font-semibold text-stone-900">What local pantries need most right now</h2>
+      <p class="mt-1 mb-4 text-[14px] text-stone-600">Tap a need to see where to drop it off.</p>
       <div id="orgBtns" class="flex flex-wrap items-center gap-1.5"></div>
       <div id="needCard" class="mt-5"></div>
       <div class="mt-4 flex justify-end">
-        <button id="staffBtn" type="button" class="inline-flex items-center gap-1.5 h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 hover:border-slate-400 active:scale-[0.98] transition">
+        <button id="staffBtn" type="button" class="inline-flex items-center gap-1.5 h-10 rounded-xl border border-stone-200 bg-white px-3.5 text-sm font-medium text-stone-700 hover:border-stone-400 active:scale-[0.98] transition">
           <i data-lucide="plus" class="h-4 w-4"></i>Staff Demo: add an urgent need
         </button>
       </div>
     </section>
 
-    <footer class="mt-16 text-xs text-slate-400 leading-relaxed max-w-3xl">
+    <footer class="mt-16 text-xs text-stone-400 leading-relaxed max-w-3xl">
       Needs, hours, arrival notes and redirect suggestions are examples for this demo, so please confirm with each organization before you go.
       Map tiles © Esri (Esri, HERE, Garmin, OpenStreetMap contributors); driving routes from the OSRM demo server.
-      <a href="#" id="resetDemo" class="ml-1 underline decoration-slate-300 underline-offset-2 hover:text-slate-600">Reset demo data</a>
+      <a href="#" id="resetDemo" class="ml-1 underline decoration-stone-300 underline-offset-2 hover:text-stone-600">Reset demo data</a>
     </footer>
   </main>
 
   <!-- Staff Demo modal -->
   <div id="staffModal" class="fixed inset-0 z-[1200] hidden overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="staffTitle">
-    <div data-close class="fixed inset-0 bg-slate-900/30"></div>
-    <div class="relative mx-auto my-12 w-[calc(100%-2rem)] max-w-lg bg-white rounded-2xl border border-slate-200 shadow-lg fade-up">
+    <div data-close class="fixed inset-0 bg-stone-900/30"></div>
+    <div class="relative mx-auto my-12 w-[calc(100%-2rem)] max-w-lg bg-white rounded-2xl border border-stone-200 shadow-lg fade-up">
       <div class="flex items-start justify-between px-6 pt-6">
         <div>
           <p class="text-xs font-medium text-amber-700">Staff Demo</p>
           <h3 id="staffTitle" class="mt-0.5 text-lg font-semibold">Add an urgent need</h3>
-          <p class="mt-1 text-[13px] text-slate-500">Shows how a coordinator could publish a need. It appears first on the list and is saved in this browser only.</p>
+          <p class="mt-1 text-[13px] text-stone-500">Shows how a coordinator could publish a need. It appears first on the list and is saved in this browser only.</p>
         </div>
-        <button type="button" data-close class="h-8 w-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Close">
+        <button type="button" data-close class="h-8 w-8 grid place-items-center rounded-lg hover:bg-stone-100 text-stone-500" aria-label="Close">
           <i data-lucide="x" class="h-4 w-4"></i>
         </button>
       </div>
       <form id="staffForm" class="px-6 py-5 space-y-3.5" novalidate>
         <label class="block">
-          <span class="text-sm text-slate-600">Organization</span>
-          <select id="fOrg" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm bg-white focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
+          <span class="text-sm text-stone-600">Organization</span>
+          <select id="fOrg" class="mt-1.5 w-full rounded-xl border border-stone-200 px-3 h-11 text-sm bg-white focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"></select>
         </label>
         <label class="block">
-          <span class="text-sm text-slate-600">Item needed</span>
-          <input id="fTitle" maxlength="40" placeholder="e.g. Size 5–6 Diapers" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+          <span class="text-sm text-stone-600">Item needed</span>
+          <input id="fTitle" maxlength="40" placeholder="e.g. Size 5–6 Diapers" class="mt-1.5 w-full rounded-xl border border-stone-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
         </label>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <label class="block">
-            <span class="text-sm text-slate-600">Program</span>
-            <input id="fProgram" maxlength="24" placeholder="e.g. Infant &amp; Family" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+            <span class="text-sm text-stone-600">Program</span>
+            <input id="fProgram" maxlength="24" placeholder="e.g. Infant &amp; Family" class="mt-1.5 w-full rounded-xl border border-stone-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
           </label>
           <label class="block">
-            <span class="text-sm text-slate-600">What to buy</span>
-            <input id="fSpec" maxlength="90" placeholder="e.g. Unopened packs, any brand" class="mt-1.5 w-full rounded-xl border border-slate-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
+            <span class="text-sm text-stone-600">What to buy</span>
+            <input id="fSpec" maxlength="90" placeholder="e.g. Unopened packs, any brand" class="mt-1.5 w-full rounded-xl border border-stone-200 px-3 h-11 text-sm focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" />
           </label>
         </div>
         <p id="fError" hidden class="text-sm text-red-600"></p>
         <div class="pt-2 flex justify-end gap-2">
-          <button type="button" data-close class="h-10 px-4 rounded-xl border border-slate-200 text-sm font-medium hover:bg-slate-50">Cancel</button>
+          <button type="button" data-close class="h-10 px-4 rounded-xl border border-stone-200 text-sm font-medium hover:bg-stone-50">Cancel</button>
           <button type="submit" class="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white text-sm font-medium transition">Publish need</button>
         </div>
       </form>
@@ -197,7 +214,7 @@
   </div>
 
   <!-- Toast -->
-  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -translate-x-1/2 z-[1300] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
+  <div id="toastWrap" style="top: calc(5rem + env(safe-area-inset-top, 0px))" class="fixed left-1/2 -transtone-x-1/2 z-[1300] w-[calc(100%-2rem)] max-w-sm pointer-events-none"></div>
 
 <script>
 /* =====================================================================
@@ -597,7 +614,7 @@ function ago(ts) {
 let toastTimer;
 function toast(text) {
   const el = document.createElement('div');
-  el.className = 'pointer-events-auto rounded-xl bg-white border border-slate-200 shadow-lg px-4 py-3 text-sm text-center fade-up';
+  el.className = 'pointer-events-auto rounded-xl bg-white border border-stone-200 shadow-lg px-4 py-3 text-sm text-center fade-up';
   el.textContent = text;
   $('#toastWrap').replaceChildren(el);
   clearTimeout(toastTimer);
@@ -663,11 +680,11 @@ function openState(o) {
 }
 const openBadge = (o) => {
   const s = openState(o);
-  return `<span class="inline-flex items-center gap-1 text-[12.5px] font-semibold ${s.open ? 'text-emerald-700' : 'text-slate-500'}">${s.open ? '● Open Now' : '○ Closed'}<span class="font-normal text-slate-500">· ${s.detail}</span></span>`;
+  return `<span class="inline-flex items-center gap-1 text-[12.5px] font-semibold ${s.open ? 'text-emerald-700' : 'text-stone-500'}">${s.open ? '● Open Now' : '○ Closed'}<span class="font-normal text-stone-500">· ${s.detail}</span></span>`;
 };
 // Goodwill and ReStore hours aren't verified here, so the page says so instead of guessing
 const siteStatus = (k, org) => SITES[k].partner
-  ? '<span class="text-[12.5px] text-slate-500">Hours vary · check before you go</span>'
+  ? '<span class="text-[12.5px] text-stone-500">Hours vary · check before you go</span>'
   : openBadge(ORGS[org || k]);
 
 /* =====================================================================
@@ -680,15 +697,15 @@ let tripSeq = 0;                   // ignores route answers that arrive after th
 function popupHtml(k) {
   const idx = trip.stops.findIndex(s => s.site === k);
   const hours = SITES[k].partner
-    ? '<p class="mt-1 text-[12px] text-slate-500">Hours vary, so check before you go.</p>'
-    : `<p class="mt-1 text-[12px] text-slate-600">${hoursLine(ORGS[k])}${k === 'sacred' ? ' (Clothes Closet to 3:30 PM)' : ''}</p><p class="mt-0.5">${openBadge(ORGS[k])}</p>`;
+    ? '<p class="mt-1 text-[12px] text-stone-500">Hours vary, so check before you go.</p>'
+    : `<p class="mt-1 text-[12px] text-stone-600">${hoursLine(ORGS[k])}${k === 'sacred' ? ' (Clothes Closet to 3:30 PM)' : ''}</p><p class="mt-0.5">${openBadge(ORGS[k])}</p>`;
   return `
     <div class="font-sans">
       ${idx >= 0 ? `<p class="text-[11px] font-semibold uppercase tracking-[0.06em] text-emerald-700">Stop ${idx + 1} on your trip</p>` : ''}
-      <p class="text-[14px] font-semibold text-slate-900 leading-snug">${siteName(k)}</p>
-      <p class="mt-0.5 text-[12px] text-slate-600">${siteAddr(k)}</p>
+      <p class="text-[14px] font-semibold text-stone-900 leading-snug">${siteName(k)}</p>
+      <p class="mt-0.5 text-[12px] text-stone-600">${siteAddr(k)}</p>
       ${hours}
-      <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k), startPlace())}" class="mt-2.5 inline-flex items-center h-8 rounded-lg bg-slate-900 px-2.5 text-[12px] font-semibold !text-white hover:bg-slate-700">Directions from ${esc(start.label)} ↗</a>
+      <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(k), startPlace())}" class="mt-2.5 inline-flex items-center h-8 rounded-lg bg-stone-900 px-2.5 text-[12px] font-semibold !text-white hover:bg-stone-700">Directions from ${esc(start.label)} ↗</a>
     </div>`;
 }
 const numberIcon = (n, partner) => L.divIcon({
@@ -699,7 +716,7 @@ const numberIcon = (n, partner) => L.divIcon({
 
 function initMap() {
   if (!window.L) {
-    $('#map').innerHTML = '<div class="h-full grid place-items-center text-sm text-slate-500 px-6 text-center">The map could not load. The Google Maps buttons still work.</div>';
+    $('#map').innerHTML = '<div class="h-full grid place-items-center text-sm text-stone-500 px-6 text-center">The map could not load. The Google Maps buttons still work.</div>';
     return;
   }
   map = L.map('map', { scrollWheelZoom: false, maxZoom: 16 }).setView([37.37, -121.91], 11);
@@ -718,7 +735,7 @@ function initMap() {
   tripLayer = L.layerGroup().addTo(map);
   startMarker = L.circleMarker([start.lat, start.lng], { radius: 8, weight: 3, color: '#fff', fillColor: '#2563EB', fillOpacity: 1 })
     .addTo(map)
-    .bindPopup(() => `<div class="font-sans"><p class="text-[14px] font-semibold text-slate-900">Starting from ${esc(start.label)}</p><p class="mt-0.5 text-[12px] text-slate-600">Change it with the menu above the map.</p></div>`)
+    .bindPopup(() => `<div class="font-sans"><p class="text-[14px] font-semibold text-stone-900">Starting from ${esc(start.label)}</p><p class="mt-0.5 text-[12px] text-stone-600">Change it with the menu above the map.</p></div>`)
     .bindTooltip('Start', { permanent: true, direction: 'bottom', offset: [0, 8], className: 'site-tip start' });
   if (window.ResizeObserver) new ResizeObserver(() => { map.invalidateSize(); fitMap(); }).observe($('#map'));
 }
@@ -930,17 +947,18 @@ let lastAI = false;                      // did Claude sort the current results?
 let pending = '';                        // text being sorted right now
 let photo = null;                        // { url } of the photo being or last scanned
 let photoNote = '';                      // why a photo scan found nothing, shown in place of results
-let searchSeq = 0, searchCtrl = null;
+let searchSeq = 0, searchCtrl = null;    // the photo scan
+let batches = [];                        // typed lines still being sorted: { id, text, ctrl }
+let batchSeq = 0;
+let fresh = new Set();                   // entries added since the last render, so they can pop
+let photoCount = 0;
 const input = $('#searchInput');
-const isDefault = () => !selection.length && !pending && !photoNote;
+const isDefault = () => !selection.length && !pending && !photoNote && !batches.length;
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function replay(el, cls) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+const buzz = (ms = 8) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {} };
 
-function setBusy(on) {
-  $('#askAI').disabled = on;
-  $('#photoBtn').disabled = on;
-  $('#askAIIcon').innerHTML = on ? '<i data-lucide="loader-2" class="h-4 w-4 spin"></i>' : '<i data-lucide="arrow-right" class="h-4 w-4"></i>';
-  $('#askAILabel').textContent = on ? 'Sorting...' : 'Find drop-offs';
-  icons();
-}
+function setBusy(on) { $('#photoBtn').disabled = on; }
 function cancelSearch() {
   searchSeq++;
   if (searchCtrl) searchCtrl.abort();
@@ -954,6 +972,7 @@ function clearPhoto() {
 }
 function resetToDefault() {
   cancelSearch();
+  batches.forEach(b => b.ctrl.abort()); batches = [];
   source = 'pills'; lastAI = false; clearPhoto();
   selection = [];
   input.value = '';
@@ -962,43 +981,103 @@ function resetToDefault() {
 
 /* --- Pills: toggle on/off, several at once --- */
 $('#quickPills').innerHTML = QUICK.map(p => `
-  <button type="button" data-quick="${p.id}" aria-pressed="false" class="quick-btn flex items-center gap-2 min-h-[38px] py-1.5 rounded-xl border px-3 text-left text-sm font-medium leading-tight active:scale-[0.97] transition">
-    <i data-lucide="${p.icon}" class="h-4 w-4 shrink-0"></i><span class="min-w-0">${p.label}</span>
+  <button type="button" data-quick="${p.id}" aria-pressed="false" class="quick-btn inline-flex items-center gap-1.5 h-9 rounded-full border px-3.5 text-[13.5px] font-medium active:scale-[0.96] transition">
+    <i data-lucide="${p.icon}" class="h-3.5 w-3.5 shrink-0 opacity-60"></i><span>${p.label}</span>
   </button>`).join('');
 $('#quickPills').addEventListener('click', (e) => {
   const b = e.target.closest('[data-quick]');
   if (!b) return;
   const p = QUICK.find(x => x.id === b.dataset.quick), id = `pill:${p.id}`;
-  cancelSearch();
-  if (source !== 'pills') { source = 'pills'; selection = []; lastAI = false; clearPhoto(); }   // a pill replaces typed or photo results
-  input.value = '';
-  selection = selection.some(s => s.id === id) ? selection.filter(s => s.id !== id) : [...selection, pillEntry(p)];
-  render();
+  photoNote = ''; source = 'pills';
+  if (selection.some(s => s.id === id)) selection = selection.filter(s => s.id !== id);
+  else { selection = [...selection, pillEntry(p)]; fresh.add(id); buzz(); }
+  render(false);
 });
 
 /* --- Demo chips --- */
 $('#examples').innerHTML = 'Try: ' + EXAMPLES.map((x, i) =>
-  `<button type="button" data-example="${i}" class="text-left text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-emerald-800 hover:decoration-emerald-500">${x.text}</button>`).join('<span class="mx-1.5 text-slate-300">·</span>');
+  `<button type="button" data-example="${i}" class="text-left text-stone-700 underline decoration-stone-300 underline-offset-2 hover:text-emerald-800 hover:decoration-emerald-500">${x.text}</button>`).join('<span class="mx-1.5 text-stone-300">·</span>');
 $('#examples').addEventListener('click', (e) => {
   const b = e.target.closest('[data-example]');
   if (!b) return;
-  input.value = EXAMPLES[Number(b.dataset.example)].text;
-  runSearch(input.value);
+  addTyped(EXAMPLES[Number(b.dataset.example)].text);
 });
 
 /* --- Selected chips + Clear all --- */
-function renderBar() {
-  $('#selectionBar').innerHTML = isDefault() ? ''
-    : '<button type="button" data-reset class="font-medium text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-900">Clear all</button>';
+const CHIP = {
+  accept:   'bg-emerald-500',
+  redirect: 'bg-amber-500',
+  reject:   'bg-red-500',
+  unknown:  'bg-stone-300',
+};
+function renderBar(items) {
+  $('#selectionBar').innerHTML = '';
+  $('#examples').hidden = !isDefault();
+  const tray = $('#chipTray');
+  if (!selection.length && !batches.length) { tray.innerHTML = ''; return; }
+  let k = 0;
+  tray.innerHTML = items.map(i => {
+    const delay = fresh.has(i.id) ? `style="animation-delay:${(k++) * 70}ms"` : '';
+    const dot = CHIP[i.kind] || CHIP.unknown;
+    return `<span data-chip="${esc(i.id)}" class="chip inline-flex items-center gap-2 h-9 pl-3 pr-1 rounded-full bg-stone-900 text-white text-[13.5px] font-medium shadow-sm ${fresh.has(i.id) ? 'chip-settle' : ''}" ${delay}>
+      <span class="h-2 w-2 rounded-full ${dot}"></span><span class="max-w-[14rem] truncate">${esc(i.label)}</span>
+      <button type="button" data-unselect="${esc(i.id)}" aria-label="Remove ${esc(i.label)}" class="h-7 w-7 grid place-items-center rounded-full text-white/60 hover:text-white hover:bg-white/15 transition"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
+    </span>`;
+  }).join('') + batches.map(b => `
+    <span data-batch="${b.id}" class="chip chip-sorting inline-flex items-center gap-2 h-9 px-3 rounded-full bg-stone-700 text-[13.5px] font-medium text-white/85">
+      <span class="h-2 w-2 rounded-full bg-white/40 animate-pulse"></span><span class="max-w-[14rem] truncate">${esc(b.text)}</span>
+    </span>`).join('') + `
+    <span class="ml-1 inline-flex items-center gap-2 text-[12.5px] text-stone-500"><span id="itemCount" class="font-semibold tabular-nums text-stone-700">${selection.length}</span> item${selection.length === 1 ? '' : 's'}
+      <button type="button" data-reset class="font-medium underline decoration-stone-300 underline-offset-2 hover:text-stone-900">Clear all</button></span>`;
 }
-$('#selectionBar').addEventListener('click', (e) => {
+let stripKey = '';
+function renderPhotoStrip() {
+  const el = $('#photoStrip');
+  if (!photo && !photoNote) { el.innerHTML = ''; return; }
+  const thumb = photo ? `<span class="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-stone-200">
+      <img src="${photo.url}" alt="Your photo" class="h-full w-full object-cover">${pending ? '<span class="scan-line"></span>' : ''}</span>`
+    : '<span class="h-14 w-14 shrink-0 grid place-items-center rounded-xl bg-stone-100 text-stone-400"><i data-lucide="image-off" class="h-5 w-5"></i></span>';
+  let body, actions = '';
+  if (pending) {
+    body = `<p class="text-[14px] font-semibold text-stone-900">Looking at your photo…</p><p class="text-[12.5px] text-stone-500">Picking out each item, usually a few seconds</p>`;
+    actions = `<button type="button" data-photo-cancel class="h-8 rounded-lg px-2.5 text-[12.5px] font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-900">Cancel</button>`;
+  } else if (photoNote) {
+    body = `<p class="text-[13.5px] text-stone-700 leading-snug">${photoNote}</p>`;
+    actions = `<button type="button" data-photo-retry class="h-8 rounded-lg bg-stone-900 px-3 text-[12.5px] font-semibold text-white hover:bg-stone-700">Try another</button>
+      <button type="button" data-type-instead class="h-8 rounded-lg px-2.5 text-[12.5px] font-medium text-stone-600 hover:bg-stone-100">Type instead</button>`;
+  } else {
+    body = `<p class="text-[14px] font-semibold text-stone-900">Found ${photoCount} item${photoCount === 1 ? '' : 's'}</p><p class="text-[12.5px] text-stone-500">Remove any that don’t belong, or type what was missed.</p>`;
+    actions = `<button type="button" data-photo-retry class="h-8 rounded-lg px-2.5 text-[12.5px] font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900">Add another photo</button>
+      <button type="button" data-photo-dismiss aria-label="Hide photo" class="h-8 w-8 grid place-items-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-stone-900"><i data-lucide="x" class="h-4 w-4"></i></button>`;
+  }
+  const key = (photo ? photo.url : '') + '|' + (pending ? 'p' : photoNote ? 'n' : 'd') + photoCount;
+  const fade = key !== stripKey; stripKey = key;
+  el.innerHTML = `<div class="${fade ? 'fade-up ' : ''}flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-2.5 pr-2">
+    ${thumb}<div class="min-w-0 flex-1">${body}<div class="mt-1.5 -ml-1 flex flex-wrap items-center gap-1 sm:hidden">${actions}</div></div>
+    <div class="hidden sm:flex shrink-0 items-center gap-1">${actions}</div></div>`;
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-photo-retry]')) { $('#photoInput').click(); return; }
+  if (e.target.closest('[data-photo-cancel]')) { cancelSearch(); clearPhoto(); render(false); return; }
+  if (e.target.closest('[data-photo-dismiss]')) { clearPhoto(); render(false); }
+});
+function removeChip(id) {
+  const el = document.querySelector(`[data-chip="${CSS.escape(id)}"]`);
+  const done = () => { selection = selection.filter(s => s.id !== id); render(false); };
+  if (el && !reduceMotion()) { el.classList.add('chip-out'); setTimeout(done, 160); } else done();
+}
+$('#chipTray').addEventListener('click', (e) => {
   const u = e.target.closest('[data-unselect]');
-  if (u) { selection = selection.filter(s => s.id !== u.dataset.unselect); render(); }
+  if (u) { removeChip(u.dataset.unselect); input.focus({ preventScroll: true }); }
+});
+// Backspace in an empty box takes back the last item
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Backspace' && !input.value && selection.length && !e.repeat) { e.preventDefault(); removeChip(selection[selection.length - 1].id); }
 });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-reset]')) resetToDefault(); });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-type-instead]')) return;
-  photoNote = ''; clearPhoto(); source = 'search'; selection = [];
+  photoNote = ''; clearPhoto(); source = 'search';
   render(false);
   input.focus();
 });
@@ -1089,20 +1168,52 @@ function fromAI(x) {
 
 const AI_URL = '/api/claude';
 const AI_TIMEOUT_MS = 5500;   // the server gives up at 4 s; this is the outer safety net
-async function runSearch(raw) {
+// Adds entries to the list, skipping ones already there (those give a little shake instead)
+function addEntries(entries) {
+  const have = new Map(selection.map(x => [norm(x.label), x.id]));
+  const dupes = [];
+  let added = 0;
+  entries.forEach(en => {
+    const k = norm(en.label);
+    if (have.has(k)) { dupes.push(have.get(k)); return; }
+    have.set(k, en.id); selection.push(en); fresh.add(en.id); added++;
+  });
+  return { added, dupes };
+}
+// The typed text flies from the box into its spot in the list
+function flyChip(batchId) {
+  const target = document.querySelector(`[data-batch="${batchId}"]`);
+  if (!target || reduceMotion()) return;
+  const from = input.getBoundingClientRect(), to = target.getBoundingClientRect();
+  const ghost = target.cloneNode(true);
+  Object.assign(ghost.style, { position: 'fixed', left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', margin: '0', zIndex: 1400, pointerEvents: 'none' });
+  document.body.appendChild(ghost);
+  target.style.visibility = 'hidden';
+  const dx = from.left - to.left, dy = from.top + (from.height - to.height) / 2 - to.top;
+  ghost.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(1.04)`, opacity: 0.2 },
+    { opacity: 1, offset: 0.25 },
+    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+  ], { duration: 380, easing: 'cubic-bezier(.2,.9,.25,1.12)' }).onfinish = () => {
+    ghost.remove();
+    const t = document.querySelector(`[data-batch="${batchId}"]`);
+    if (t) { t.style.visibility = ''; replay(t, 'chip-settle'); }
+  };
+}
+async function addTyped(raw) {
   const text = raw.trim().slice(0, 400);
-  if (!text) { input.focus(); return; }
-  cancelSearch();
-  const seq = searchSeq, ctrl = new AbortController();
-  searchCtrl = ctrl;
-  source = 'search'; selection = []; lastAI = false; clearPhoto();   // typed search replaces any pills or photo
-  pending = text;
-  setBusy(true);
-  render();
+  if (!text) { replay($('#searchBox'), 'shake'); input.focus(); return; }
+  photoNote = ''; source = 'search';
+  const b = { id: ++batchSeq, text, ctrl: new AbortController() };
+  batches.push(b);
+  input.value = ''; input.focus({ preventScroll: true });
+  replay($('#searchBox'), 'box-pulse'); buzz();
+  render(false);
+  flyChip(b.id);
   let entries = null;
-  const timer = setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS);
+  const timer = setTimeout(() => b.ctrl.abort(), AI_TIMEOUT_MS);
   try {
-    const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: ctrl.signal });
+    const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: b.ctrl.signal });
     if (res.ok) {
       const data = await res.json();
       const seen = new Set();
@@ -1112,15 +1223,17 @@ async function runSearch(raw) {
     }
   } catch (_) { /* slow, offline or not deployed: the local parser answers */ }
   clearTimeout(timer);
-  if (seq !== searchSeq) return;          // a newer search or a pill tap took over
-  pending = '';
-  setBusy(false);
-  lastAI = !!entries && entries.some(en => en.ai);
-  selection = entries || localEntries(text);
-  if (!selection.length) selection = [{ id: `q:${norm(text) || 'item'}`, label: cap(text).slice(0, 48), q: text }];
-  render();
+  if (!batches.includes(b)) return;      // cleared while sorting
+  batches = batches.filter(x => x !== b);
+  if (entries && entries.some(en => en.ai)) lastAI = true;
+  if (!entries) entries = localEntries(text);
+  if (!entries.length) entries = [{ id: `q:${norm(text) || 'item'}`, label: cap(text).slice(0, 48), q: text }];
+  const { added, dupes } = addEntries(entries);
+  render(false);
+  if (added) { buzz(12); replay($('#itemCount'), 'count-pop'); }
+  dupes.forEach(id => replay(document.querySelector(`[data-chip="${CSS.escape(id)}"]`), 'shake'));
 }
-$('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); runSearch(input.value); });
+$('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); addTyped(input.value); });
 
 /* =====================================================================
    PHOTO SCAN: snap the donation pile, Claude lists what it sees, the trip plans itself
@@ -1148,19 +1261,21 @@ function shrinkPhoto(file) {
   });
 }
 async function runPhoto(file) {
-  if (!file || aiBusyGuard()) return;
+  if (!file) return;
   cancelSearch();
+  if (!/^image\//.test(file.type || 'image/')) { photo = null; photoNote = 'That file isn’t a photo. Pick a JPEG, PNG or HEIC picture.'; render(false); return; }
   const seq = searchSeq, ctrl = new AbortController();
   searchCtrl = ctrl;
-  source = 'photo'; selection = []; lastAI = false; input.value = ''; clearPhoto();
+  source = 'photo'; clearPhoto(); render(false);
   let shot;
   try { shot = await shrinkPhoto(file); }
-  catch (_) { photoNote = 'This photo couldn’t be opened. Try a JPEG or PNG, or type what you have instead.'; render(); return; }
+  catch (_) { photoNote = 'This photo couldn’t be opened. Try a JPEG or PNG, or type what you have.'; render(false); return; }
   if (seq !== searchSeq) { URL.revokeObjectURL(shot.url); return; }
   photo = { url: shot.url };
   pending = 'your photo';
   setBusy(true);
-  render();
+  buzz();
+  render(false);
   let entries = null, found = false, status = 0;
   const timer = setTimeout(() => ctrl.abort(), PHOTO_TIMEOUT_MS);
   try {
@@ -1178,22 +1293,34 @@ async function runPhoto(file) {
   if (seq !== searchSeq) return;
   pending = '';
   setBusy(false);
-  if (entries && entries.length) { selection = entries; lastAI = entries.some(en => en.ai); }
+  if (entries && entries.length) { photoCount = addEntries(entries).added || entries.length; if (entries.some(en => en.ai)) lastAI = true; buzz(12); }
   else photoNote = found
-    ? 'We didn’t spot anything to donate in this photo. Try a closer shot of the items, or type what you have.'
+    ? 'Nothing to donate spotted. Try a closer shot with the items spread out.'
     : status === 429
-      ? 'That’s a lot of scans in one minute. Wait a moment and try again, or type what’s in the photo.'
-      : 'The photo scan isn’t available right now. Type what’s in the photo instead and we’ll plan your trip.';
-  render();
+      ? 'Too many scans this minute. Wait a moment, or type what’s in it.'
+      : 'The photo scan isn’t available right now. Type what’s in it instead.';
+  render(false);
+  if (entries && entries.length) replay($('#itemCount'), 'count-pop');
 }
-const aiBusyGuard = () => $('#askAI').disabled;
+const aiBusyGuard = () => !!pending;
 $('#photoBtn').addEventListener('click', () => $('#photoInput').click());
 $('#photoInput').addEventListener('change', (e) => {
   const f = e.target.files && e.target.files[0];
   e.target.value = '';                  // picking the same photo again still triggers a scan
   if (f) runPhoto(f);
 });
-const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Type items…' : 'Type what you have, e.g. “two coats and a lamp”'; };
+addEventListener('dragover', (e) => { if ([...(e.dataTransfer?.items || [])].some(i => i.kind === 'file')) { e.preventDefault(); document.body.classList.add('drop-on'); } });
+addEventListener('dragleave', (e) => { if (!e.relatedTarget) document.body.classList.remove('drop-on'); });
+addEventListener('drop', (e) => {
+  document.body.classList.remove('drop-on');
+  const f = e.dataTransfer?.files?.[0];
+  if (f) { e.preventDefault(); runPhoto(f); }
+});
+input.addEventListener('paste', (e) => {
+  const f = [...(e.clipboardData?.files || [])].find(x => /^image\//.test(x.type));
+  if (f) { e.preventDefault(); runPhoto(f); }
+});
+const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Add an item…' : 'Type an item and press Enter, e.g. “winter coat”'; };
 setPlaceholder(); addEventListener('resize', setPlaceholder);
 
 /* =====================================================================
@@ -1209,18 +1336,18 @@ const HOW = {
   goodwill: 'Pull up to the donation drop-off and an attendant will help unload; ask for a receipt for your taxes.',
 };
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
-const tag = (i, cls) => `<span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${i.hot ? '<i data-lucide="flame" class="h-3 w-3 text-red-600"></i>' : ''}${esc(i.label)}</span>`;
+const tag = (i, cls) => `<span class="${fresh.has(i.id) ? 'tag-new ' : ''}inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${esc(i.label)}${i.hot ? '<span class="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-red-700">needed</span>' : ''}</span>`;
 
 let routeOpen = false;
 const tripTitle = (n) => `Visiting all ${n} places?`;
 function renderRouteBox() {
   const box = $('#routeBox'), n = trip.stops.length;
-  box.hidden = !!pending || !!photoNote || n < 2;
+  box.hidden = n < 2;
   if (box.hidden) return;
   const t = totals(trip.stops), approx = trip.real ? '' : '~';
   $('#tripTitle').textContent = tripTitle(n);
   $('#tripTotals').textContent = `${approx}${t.mi.toFixed(1)} mi, ${approx}${t.min} min from ${start.label}`;
-  $('#routeSeq').innerHTML = `Shortest order: ${esc(cap(start.label))} → ${trip.stops.map((s, i) => `${i + 1}. <span class="font-medium text-slate-800">${shortName(s.site)}</span>`).join(' → ')}`;
+  $('#routeSeq').innerHTML = `Shortest order: ${esc(cap(start.label))} → ${trip.stops.map((s, i) => `${i + 1}. <span class="font-medium text-stone-800">${shortName(s.site)}</span>`).join(' → ')}`;
   $('#routeLink').href = fullTripUrl(trip.stops);
 }
 function setRouteOpen(open) {
@@ -1237,20 +1364,20 @@ function stopCard(s, i, stops) {
   const org = orgs.includes('closet') ? 'closet' : orgs[0];               // the Clothes Closet closes earliest
   const how = partner ? HOW[s.site] : s.site === 'sacred' ? (orgs.length > 1 ? HOW.mixed : HOW[orgs[0]]) : HOW[s.site];
   const tone = partner
-    ? { border: 'border-amber-300', num: 'bg-amber-600', tag: 'border-amber-200 bg-amber-50 text-amber-900', link: 'text-amber-800 hover:text-amber-900' }
-    : { border: 'border-emerald-300', num: 'bg-emerald-700', tag: 'border-emerald-200 bg-emerald-50 text-emerald-900', link: 'text-emerald-700 hover:text-emerald-800' };
+    ? { bar: 'bg-amber-500', tag: 'border-stone-200 bg-stone-50 text-stone-800', link: 'text-stone-900' }
+    : { bar: 'bg-emerald-600', tag: 'border-stone-200 bg-stone-50 text-stone-800', link: 'text-stone-900' };
   return `
-    <article class="rounded-2xl border ${tone.border} bg-white p-4">
+    <article class="relative overflow-hidden rounded-2xl border border-stone-200 bg-white p-5 pl-6 shadow-[0_1px_2px_rgba(28,25,23,.05)]"><span class="absolute left-0 inset-y-0 w-1 ${tone.bar}"></span>
       <div>
         <div class="min-w-0">
           <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-            <h3 class="text-[16px] font-semibold leading-snug">${siteName(s.site)}</h3>
+            <h3 class="font-display text-[19px] font-medium leading-snug">${siteName(s.site)}</h3>
             ${siteStatus(s.site, partner ? null : org)}
           </div>
-          <p class="mt-0.5 text-[13px] text-slate-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')}${partner ? ' · resells furniture, appliances and electronics' : ''}</p>
+          <p class="mt-0.5 text-[13px] text-stone-500">${siteAddr(s.site).replace(/, CA( \d+)?$/, '')}${partner ? ' · resells furniture, appliances and electronics' : ''}</p>
           <div class="mt-2.5 flex flex-wrap gap-1.5">${s.items.map(it => tag(it, tone.tag)).join('')}</div>
-          <p class="mt-2.5 text-[13px] text-slate-600 leading-relaxed">${how}</p>
-          <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site))}" class="mt-2 inline-flex items-center gap-1 text-[13px] font-semibold ${tone.link}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
+          <p class="mt-2.5 text-[13px] text-stone-600 leading-relaxed">${how}</p>
+          <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(s.site))}" class="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold underline decoration-stone-300 underline-offset-4 hover:decoration-stone-900 ${tone.link}">Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
         </div>
       </div>
     </article>`;
@@ -1258,12 +1385,12 @@ function stopCard(s, i, stops) {
 function otherCard([to, list]) {
   const d = REDIRECTS[to];
   return `
-    <article class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4">
-      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-600"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Needs a specialist drop-off</p>
-      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-slate-200 bg-slate-50 text-slate-800')).join('')}</div>
-      <p class="mt-2.5 text-[13.5px] text-slate-700 leading-relaxed">${esc(list[0].why)}</p>
+    <article class="rounded-2xl border border-stone-300 bg-white shadow-sm p-4">
+      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-stone-600"><i data-lucide="corner-up-right" class="h-4 w-4"></i>Needs a specialist drop-off</p>
+      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-stone-200 bg-stone-50 text-stone-800')).join('')}</div>
+      <p class="mt-2.5 text-[13.5px] text-stone-700 leading-relaxed">${esc(list[0].why)}</p>
       <p class="mt-2 text-[14px] font-semibold">${d.name}</p>
-      <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.query)}" class="mt-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-slate-800 hover:text-slate-950">Find the nearest one<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
+      <a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.query)}" class="mt-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-stone-800 hover:text-stone-950">Find the nearest one<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a>
     </article>`;
 }
 function rejectCard(list) {
@@ -1277,67 +1404,50 @@ function rejectCard(list) {
         ${list.map(i => `
           <li>
             <p class="text-[14.5px] font-semibold">${esc(i.label)}</p>
-            <p class="mt-0.5 text-[13.5px] text-slate-700 leading-relaxed">${i.ai ? esc(i.why) : i.why}</p>
-            ${i.instead ? `<p class="mt-1 flex items-start gap-1.5 text-[13px] text-slate-600"><i data-lucide="lightbulb" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500"></i><span>Instead: ${i.ai ? esc(i.instead) : i.instead}</span></p>` : ''}
+            <p class="mt-0.5 text-[13.5px] text-stone-700 leading-relaxed">${i.ai ? esc(i.why) : i.why}</p>
+            ${i.instead ? `<p class="mt-1 flex items-start gap-1.5 text-[13px] text-stone-600"><i data-lucide="lightbulb" class="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500"></i><span>Instead: ${i.ai ? esc(i.instead) : i.instead}</span></p>` : ''}
           </li>`).join('')}
       </ul>
     </article>`;
 }
 function unknownCard(list) {
   return `
-    <article class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4">
-      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-600"><i data-lucide="circle-help" class="h-4 w-4"></i>Not sure about these</p>
-      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-slate-200 bg-slate-50 text-slate-700')).join('')}</div>
-      <p class="mt-2.5 text-[13.5px] text-slate-600 leading-relaxed">Try a simpler word, like “coat”, “rice” or “dog food”, or call the organization to ask.</p>
+    <article class="rounded-2xl border border-stone-300 bg-white shadow-sm p-4">
+      <p class="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-stone-600"><i data-lucide="circle-help" class="h-4 w-4"></i>Not sure about these</p>
+      <div class="mt-2.5 flex flex-wrap gap-1.5">${list.map(i => tag(i, 'border-stone-200 bg-stone-50 text-stone-700')).join('')}</div>
+      <p class="mt-2.5 text-[13.5px] text-stone-600 leading-relaxed">Try a simpler word, like “coat”, “rice” or “dog food”, or call the organization to ask.</p>
     </article>`;
 }
 
 function renderResults(items, animate) {
   const left = $('#resultLeft');
-  if (pending) {
-    left.innerHTML = `
-      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-5" role="status">
-        ${photo ? `
-        <div class="flex items-center gap-3">
-          <img src="${photo.url}" alt="Your photo" class="h-16 w-16 rounded-xl object-cover border border-slate-200">
-          <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Finding every item in your photo…</p>
-        </div>` : `
-        <p class="flex items-center gap-2 text-[13.5px] font-medium text-slate-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Sorting “${esc(pending.length > 70 ? pending.slice(0, 67) + '…' : pending)}”</p>`}
-        <div class="mt-4 space-y-3 animate-pulse">
-          <div class="h-16 rounded-xl bg-slate-200"></div>
-          <div class="h-4 w-2/5 rounded bg-slate-200"></div>
-          <div class="flex gap-2"><div class="h-7 w-24 rounded-full bg-slate-200"></div><div class="h-7 w-28 rounded-full bg-slate-200"></div><div class="h-7 w-20 rounded-full bg-slate-200"></div></div>
-          <div class="h-3.5 w-11/12 rounded bg-slate-200"></div>
-        </div>
-      </div>`;
-    icons(); return;
+  if (pending && !selection.length) {
+    left.innerHTML = `<div class="rounded-2xl border border-stone-200 bg-white p-5 space-y-3 animate-pulse" role="status" aria-label="Reading your photo">
+      <div class="h-5 w-1/2 rounded bg-stone-200"></div><div class="h-3.5 w-1/3 rounded bg-stone-200"></div>
+      <div class="flex gap-2"><div class="h-7 w-24 rounded-full bg-stone-200"></div><div class="h-7 w-28 rounded-full bg-stone-200"></div></div></div>`;
+    return;
   }
-  if (photoNote) {
+  if (!selection.length && batches.length) {
     left.innerHTML = `
-      <div class="rounded-2xl border border-slate-300 bg-white shadow-sm p-5 flex items-start gap-3">
-        ${photo ? `<img src="${photo.url}" alt="Your photo" class="h-16 w-16 rounded-xl object-cover border border-slate-200 shrink-0">` : '<i data-lucide="camera-off" class="h-5 w-5 text-slate-400 shrink-0 mt-0.5"></i>'}
-        <div class="min-w-0">
-          <p class="text-[14px] text-slate-700 leading-relaxed">${photoNote}</p>
-          <button type="button" data-type-instead class="mt-2.5 inline-flex items-center h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] font-semibold text-slate-800 hover:border-slate-500 active:scale-[0.97] transition">Type it instead</button>
-        </div>
+      <div class="rounded-2xl border border-stone-200 bg-white shadow-sm p-5" role="status">
+        <p class="flex items-center gap-2 text-[13.5px] font-medium text-stone-700"><i data-lucide="loader-2" class="h-4 w-4 spin text-emerald-700"></i>Finding where “${esc(batches[0].text.length > 60 ? batches[0].text.slice(0, 57) + '…' : batches[0].text)}” goes</p>
+        <div class="mt-4 space-y-3 animate-pulse"><div class="h-16 rounded-xl bg-stone-200"></div><div class="h-4 w-2/5 rounded bg-stone-200"></div></div>
       </div>`;
     icons(); return;
   }
   if (!selection.length) {
     left.innerHTML = `
-      <div class="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-5 py-7 text-center">
-        <p class="text-[14.5px] text-slate-600">Type or tap what you have above, and the places that take it will show up here.</p>
+      <div class="rounded-2xl border border-dashed border-stone-300 bg-white/60 px-5 py-7 text-center">
+        <p class="text-[14.5px] text-stone-600">Type or tap what you have above, and the places that take it will show up here.</p>
       </div>`;
     icons(); return;
   }
   const other = new Map();
   items.filter(i => i.kind === 'redirect' && !REDIRECTS[i.to].places).forEach(i => { if (!other.has(i.to)) other.set(i.to, []); other.get(i.to).push(i); });
   const rejects = items.filter(i => i.kind === 'reject'), unknown = items.filter(i => i.kind === 'unknown');
-  const n = selection.length;
   left.innerHTML = `
     <div class="${animate ? 'fade-up' : ''} space-y-3">
-      ${source === 'photo' && photo ? `
-      <p class="flex items-center gap-2.5 px-1 text-[13px] font-medium text-slate-700"><img src="${photo.url}" alt="Your photo" class="h-9 w-9 rounded-lg object-cover border border-slate-200">Found ${n} item${n === 1 ? '' : 's'} in your photo</p>` : ''}
+      ${batches.length ? `<p class="flex items-center gap-2 px-1 text-[13px] text-stone-500" role="status"><i data-lucide="loader-2" class="h-3.5 w-3.5 spin text-emerald-700"></i>Adding “${esc(batches[batches.length - 1].text.slice(0, 50))}”…</p>` : ''}
       ${trip.stops.map((s, i) => stopCard(s, i, trip.stops)).join('')}
       ${[...other.entries()].map(otherCard).join('')}
       ${unknown.length ? unknownCard(unknown) : ''}
@@ -1349,17 +1459,20 @@ function renderResults(items, animate) {
 /* --- One render for everything on Tab 1 --- */
 function render(animate = true) {
   document.querySelectorAll('.quick-btn').forEach(b => {
-    const on = source === 'pills' && selection.some(s => s.id === `pill:${b.dataset.quick}`);
+    const on = selection.some(s => s.id === `pill:${b.dataset.quick}`);
     b.setAttribute('aria-pressed', on);
-    b.classList.toggle('bg-slate-900', on); b.classList.toggle('border-slate-900', on); b.classList.toggle('text-white', on);
-    b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
+    b.classList.toggle('bg-stone-900', on); b.classList.toggle('border-stone-900', on); b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on); b.classList.toggle('border-stone-200', !on); b.classList.toggle('text-stone-700', !on); b.classList.toggle('hover:border-stone-400', !on);
   });
-  renderBar();
-  const items = pending || photoNote ? [] : selection.map(resolve);
+  const all = selection.map(resolve);
+  renderBar(all);
+  renderPhotoStrip();
+  const items = all;
   trip = { stops: optimizeTrip(items), real: false };
   renderResults(items, animate);
   renderRouteBox();
   icons();
+  fresh.clear();
   routeTrip();
 }
 
@@ -1379,32 +1492,32 @@ function renderNeedCard() {
   document.querySelectorAll('.org-btn').forEach(b => {
     const on = b.dataset.org === selectedOrg;
     b.setAttribute('aria-pressed', on);
-    b.classList.toggle('bg-slate-900', on); b.classList.toggle('border-slate-900', on); b.classList.toggle('text-white', on);
-    b.classList.toggle('bg-white', !on); b.classList.toggle('border-slate-200', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('hover:border-slate-400', !on);
+    b.classList.toggle('bg-stone-900', on); b.classList.toggle('border-stone-900', on); b.classList.toggle('text-white', on);
+    b.classList.toggle('bg-white', !on); b.classList.toggle('border-stone-200', !on); b.classList.toggle('text-stone-700', !on); b.classList.toggle('hover:border-stone-400', !on);
   });
   const o = ORGS[selectedOrg], n = needs[selectedOrg];
   $('#needCard').innerHTML = `
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
       <div class="p-5 sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="min-w-0">
             <h2 class="text-xl font-semibold tracking-tight">${o.name}</h2>
-            <p class="mt-0.5 text-xs text-slate-500">Last updated ${ago(updated[selectedOrg])} · ${openBadge(o)}</p>
+            <p class="mt-0.5 text-xs text-stone-500">Last updated ${ago(updated[selectedOrg])} · ${openBadge(o)}</p>
           </div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 px-3 py-1 text-[13px] font-semibold">
             <span class="h-1.5 w-1.5 rounded-full bg-red-600"></span>High-Demand Needs
           </span>
         </div>
-        <p class="mt-4 text-[13px] text-slate-500">Tap a need to see where to drop it off and get a route.</p>
+        <p class="mt-4 text-[13px] text-stone-500">Tap a need to see where to drop it off and get a route.</p>
         <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
           ${n.items.map((it, i) => `
-            <button type="button" data-need="${i}" class="group text-left p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-[0.98] transition">
+            <button type="button" data-need="${i}" class="group text-left p-4 rounded-xl border border-stone-200 bg-stone-50/60 hover:border-emerald-500 hover:bg-emerald-50/50 active:scale-[0.98] transition">
               <span class="flex items-center gap-1.5">
-                <span class="inline-block rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-600">${esc(it.program)}</span>
+                <span class="inline-block rounded-md border border-stone-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600">${esc(it.program)}</span>
                 ${it.added ? '<span class="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-amber-800">New</span>' : ''}
               </span>
               <span class="block mt-2.5 text-[15px] font-bold leading-snug">${esc(it.title)}</span>
-              <span class="block mt-1.5 text-[13px] text-slate-600 leading-relaxed">${esc(it.spec)}</span>
+              <span class="block mt-1.5 text-[13px] text-stone-600 leading-relaxed">${esc(it.spec)}</span>
               <span class="mt-3 inline-flex items-center gap-1 text-[12.5px] font-semibold text-emerald-700 group-hover:text-emerald-800">Plan this drop-off<i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></span>
             </button>`).join('')}
         </div>
@@ -1423,19 +1536,19 @@ function renderNeedCard() {
         </div>
       </div>
 
-      <div class="px-5 sm:px-6 py-4 bg-slate-50 border-t border-slate-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+      <div class="px-5 sm:px-6 py-4 bg-stone-50 border-t border-stone-200 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
         <div class="flex items-start gap-2">
-          <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
-          <div><p class="text-slate-800">${o.address}</p>
+          <i data-lucide="map-pin" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
+          <div><p class="text-stone-800">${o.address}</p>
             <a target="_blank" rel="noopener" href="${gmapsDir(sitePlace(o.site), startPlace())}" class="inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-800">Get Directions<i data-lucide="arrow-up-right" class="h-3.5 w-3.5"></i></a></div>
         </div>
         <div class="flex items-start gap-2">
-          <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
-          <p class="text-slate-800">${hoursLine(o)}</p>
+          <i data-lucide="clock" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
+          <p class="text-stone-800">${hoursLine(o)}</p>
         </div>
         <div class="sm:col-span-2 flex items-start gap-2">
-          <i data-lucide="car" class="h-4 w-4 mt-0.5 shrink-0 text-slate-400"></i>
-          <p class="text-slate-700"><span class="font-medium text-slate-900">When you arrive:</span> ${esc(n.arrival)}</p>
+          <i data-lucide="car" class="h-4 w-4 mt-0.5 shrink-0 text-stone-400"></i>
+          <p class="text-stone-700"><span class="font-medium text-stone-900">When you arrive:</span> ${esc(n.arrival)}</p>
         </div>
       </div>
     </div>`;
@@ -1444,9 +1557,8 @@ function renderNeedCard() {
 // Tapping a need jumps to Tab 1 with that item selected and routed to this organization
 function planNeed(label, org, note, hot) {
   cancelSearch();
-  source = 'search'; lastAI = false;
-  input.value = label;
-  selection = [{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }];
+  source = 'search';
+  addEntries([{ id: `need:${org}:${norm(label)}`, label, q: label, fixed: { kind: 'accept', options: [org], hot, note } }]);
   setTab('give');
   render();
   setTimeout(() => $('#resultLeft').scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
