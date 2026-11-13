@@ -59,9 +59,11 @@
   .skel { background: linear-gradient(90deg, #ECE8E1 25%, #F6F3EE 50%, #ECE8E1 75%); background-size: 200% 100%; animation: skel 1.4s linear infinite; }
   @keyframes tint { 0%, 100% { opacity: .0 } 50% { opacity: .18 } }
   .scan-tint { position: absolute; inset: 0; background: #10B981; animation: tint 1.6s ease-in-out infinite; }
+  @keyframes cardFlash { 0% { box-shadow: 0 0 0 0 rgba(5,150,105,.45) } 100% { box-shadow: 0 0 0 10px rgba(5,150,105,0) } }
+  .card-flash { animation: cardFlash 900ms ease-out 2; }
   .drop-on #searchBox { border-color: #1C1917; box-shadow: 0 0 0 4px rgba(28,25,23,.08); }
   @media (prefers-reduced-motion: reduce) { .scan-line, .scan-tint { display: none; } .progress-indet, .skel { animation: none; } }
-  @media (prefers-reduced-motion: reduce) { .fade-up, .spin, .chip-settle, .chip-out, .shake, .chip-sorting, .box-pulse, .tag-new, .count-pop { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .fade-up, .spin, .chip-settle, .chip-out, .shake, .chip-sorting, .box-pulse, .tag-new, .count-pop, .card-flash { animation: none; } }
   button, a, select { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   :focus-visible { outline: 2px solid #047857; outline-offset: 2px; }
@@ -92,10 +94,10 @@
       <div class="min-w-0">
       <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What are you giving away?</h1>
       <p class="mt-3 text-[15.5px] text-stone-600 max-w-[34rem]">Add each item and we’ll match it to the San Jose, Campbell or Milpitas drop-off that actually takes it.</p>
-      <form id="searchForm" autocomplete="off" class="mt-8">
+      <form id="searchForm" autocomplete="off" class="relative mt-8">
         <label for="searchInput" class="sr-only">Describe what you want to donate</label>
         <div id="searchBox" class="flex items-center gap-2 rounded-2xl bg-white border border-stone-300 shadow-[0_1px_0_rgba(28,25,23,.04),0_8px_24px_-12px_rgba(28,25,23,.18)] pl-5 pr-2 h-[60px] focus-within:border-stone-900 transition">
-                    <input id="searchInput" type="text" enterkeyhint="enter" maxlength="400"
+                    <input id="searchInput" type="text" enterkeyhint="enter" maxlength="400" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest"
             class="flex-1 min-w-0 bg-transparent text-[17px] placeholder:text-stone-400 focus:outline-none" />
           <input id="photoInput" type="file" accept="image/*" class="sr-only" tabindex="-1" aria-hidden="true" />
           <button id="photoBtn" type="button" aria-label="Scan a photo of your donation pile" title="Scan a photo of your donation pile" class="shrink-0 inline-flex items-center gap-1.5 h-11 rounded-xl px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 active:scale-[0.97] disabled:cursor-wait disabled:hover:bg-transparent transition">
@@ -105,6 +107,7 @@
             <i data-lucide="corner-down-left" class="h-4 w-4"></i><span>Add</span>
           </button>
         </div>
+        <ul id="suggest" role="listbox" aria-label="Suggestions" hidden class="absolute left-0 right-0 top-[66px] z-40 overflow-hidden rounded-2xl border border-stone-200 bg-white py-1.5 shadow-[0_16px_40px_-12px_rgba(28,25,23,.25)]"></ul>
       </form>
       <div id="photoStrip" class="empty:hidden mt-3.5"></div>
       <div id="chipTray" class="flex flex-wrap items-center gap-1.5 empty:hidden mt-3.5"></div>
@@ -587,13 +590,20 @@ function ago(ts) {
   return `${Math.round(h / 24)}d ago`;
 }
 let toastTimer;
-function toast(text) {
+function toast(text, action) {
   const el = document.createElement('div');
-  el.className = 'pointer-events-auto rounded-xl bg-white border border-stone-200 shadow-lg px-4 py-3 text-sm text-center fade-up';
-  el.textContent = text;
+  el.className = 'pointer-events-auto rounded-xl bg-white border border-stone-200 shadow-lg px-4 py-3 text-sm fade-up ' + (action ? 'flex items-center justify-between gap-4' : 'text-center');
+  const msg = document.createElement('span'); msg.textContent = text; el.appendChild(msg);
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = action.label;
+    b.className = 'shrink-0 font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2';
+    b.addEventListener('click', () => { action.run(); el.remove(); });
+    el.appendChild(b);
+  }
   $('#toastWrap').replaceChildren(el);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.style.transition = 'opacity 300ms'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, 2400);
+  toastTimer = setTimeout(() => { el.style.transition = 'opacity 300ms'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, action ? 4500 : 2400);
 }
 
 /* =====================================================================
@@ -830,7 +840,7 @@ function renderBar(items) {
     const delay = fresh.has(i.id) ? `style="animation-delay:${(k++) * 70}ms"` : '';
     const dot = CHIP[i.kind] || CHIP.unknown;
     return `<span data-chip="${esc(i.id)}" class="chip inline-flex items-center gap-1.5 h-8 pl-2.5 pr-0.5 rounded-full border border-stone-200 bg-white text-stone-800 text-[13px] font-medium ${fresh.has(i.id) ? 'chip-settle' : ''}" ${delay}>
-      <span class="h-1.5 w-1.5 rounded-full ${dot}"></span><span class="max-w-[11rem] truncate">${esc(i.label)}</span>
+      <button type="button" data-find="${esc(i.id)}" title="Show where it goes" class="inline-flex items-center gap-1.5 min-w-0 rounded-full hover:text-stone-950"><span class="h-1.5 w-1.5 shrink-0 rounded-full ${dot}"></span><span class="max-w-[11rem] truncate">${esc(i.label)}</span></button>
       <button type="button" data-unselect="${esc(i.id)}" aria-label="Remove ${esc(i.label)}" class="h-7 w-7 grid place-items-center rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
     </span>`;
   }).join('') + batches.map(b => `
@@ -929,10 +939,26 @@ document.addEventListener('click', (e) => {
 });
 function removeChip(id) {
   const el = document.querySelector(`[data-chip="${CSS.escape(id)}"]`);
-  const done = () => { selection = selection.filter(s => s.id !== id); render(false); };
+  const idx = selection.findIndex(s => s.id === id), entry = selection[idx];
+  const done = () => {
+    selection = selection.filter(s => s.id !== id); render(false);
+    if (entry) toast(`Removed ${entry.label}`, { label: 'Undo', run: () => {
+      if (selection.some(s => s.id === id)) return;
+      selection.splice(Math.min(idx, selection.length), 0, entry); fresh.add(id); render(false);
+    } });
+  };
   if (el && !reduceMotion()) { el.classList.add('chip-out'); setTimeout(done, 160); } else done();
 }
+function findCard(id) {
+  const t = document.querySelector(`#resultLeft [data-tag="${CSS.escape(id)}"]`);
+  const card = t && t.closest('article');
+  if (!card) return;
+  card.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' });
+  replay(card, 'card-flash'); replay(t, 'tag-new');
+}
 $('#chipTray').addEventListener('click', (e) => {
+  const f = e.target.closest('[data-find]');
+  if (f) { findCard(f.dataset.find); return; }
   const u = e.target.closest('[data-unselect]');
   if (u) { removeChip(u.dataset.unselect); input.focus({ preventScroll: true }); }
 });
@@ -940,7 +966,15 @@ $('#chipTray').addEventListener('click', (e) => {
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Backspace' && !input.value && selection.length && !e.repeat) { e.preventDefault(); removeChip(selection[selection.length - 1].id); }
 });
-document.addEventListener('click', (e) => { if (e.target.closest('[data-reset]')) resetToDefault(); });
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-reset]')) return;
+  const before = selection.slice();
+  resetToDefault();
+  if (before.length) toast(`Cleared ${before.length} item${before.length === 1 ? '' : 's'}`, { label: 'Undo', run: () => {
+    if (selection.length) return;
+    selection = before; before.forEach(en => fresh.add(en.id)); render(false);
+  } });
+});
 document.addEventListener('click', (e) => {
   if (!e.target.closest('[data-type-instead]')) return;
   photoNote = ''; clearPhoto(); source = 'search';
@@ -970,9 +1004,11 @@ const SPELL = { cloths: 'clothes', clothe: 'clothes', clotes: 'clothes', cloaths
   jaket: 'jacket', jakets: 'jackets', jackit: 'jacket', blankit: 'blanket', blankits: 'blankets', backpak: 'backpack', bakpack: 'backpack',
   vegtables: 'vegetables', vegetabels: 'vegetables', vegatables: 'vegetables', toothpast: 'toothpaste', diapres: 'diapers', shampo: 'shampoo' };
 const fixSpelling = (label) => label.replace(/[A-Za-z]+/g, w => { const f = SPELL[w.toLowerCase()]; return f ? (w[0] === w[0].toUpperCase() ? cap(f) : f) : w; });
+const SMALL_WORDS = new Set(['and', 'or', 'of', 'in', 'a', 'an', 'the', 'for', 'with', 'to']);
+const titleCase = (t) => t.split(' ').map((w, i) => i && SMALL_WORDS.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 function localEntries(text) {
   const seen = new Set();
-  return splitItems(text).map(part => ({ id: `q:${norm(part)}`, label: cap(fixSpelling(part)).slice(0, 48), q: fixSpelling(part) }))
+  return splitItems(text).map(part => ({ id: `q:${norm(part)}`, label: titleCase(fixSpelling(part)).slice(0, 48), q: fixSpelling(part) }))
     .filter(en => norm(en.q) && !seen.has(en.id) && seen.add(en.id));
 }
 
@@ -1056,8 +1092,9 @@ function addEntries(entries) {
 }
 // The typed text flies from the box into its spot in the list
 function flyChip(batchId) {
+  return new Promise(done => {
   const target = document.querySelector(`[data-batch="${batchId}"]`);
-  if (!target || reduceMotion()) return;
+  if (!target || reduceMotion()) return done();
   const from = input.getBoundingClientRect(), to = target.getBoundingClientRect();
   const ghost = target.cloneNode(true);
   Object.assign(ghost.style, { position: 'fixed', left: to.left + 'px', top: to.top + 'px', width: to.width + 'px', margin: '0', zIndex: 1400, pointerEvents: 'none' });
@@ -1075,8 +1112,12 @@ function flyChip(batchId) {
     ghost.remove();
     const t = document.querySelector(`[data-batch="${batchId}"]`);
     if (t) { t.style.visibility = ''; replay(t, 'chip-settle'); }
+    done();
   }
+  });
 }
+// The built-in rules already know this item (or know it can't be donated): no need to ask the server
+function isKnown(en) { const a = analyze(en.q); return (a.item && !a.item.fuzzy) || a.status === 'reject'; }
 const AI_CACHE_KEY = 'givelocal-sorted-v1';
 let aiCache = {};
 try { aiCache = JSON.parse(sessionStorage.getItem(AI_CACHE_KEY) || '{}') || {}; } catch (_) {}
@@ -1096,15 +1137,28 @@ async function addTyped(raw) {
   input.value = ''; input.focus({ preventScroll: true });
   replay($('#searchBox'), 'box-pulse'); buzz();
   render(false);
-  flyChip(b.id);
+  await flyChip(b.id);
+  if (!batches.includes(b)) return;      // cleared mid-flight
+  // Items the rules know land instantly; only unfamiliar ones wait for the server
+  const parts = localEntries(text), known = parts.filter(isKnown), unknown = parts.filter(en => !isKnown(en));
+  if (known.length) {
+    const r = addEntries(known);
+    if (!unknown.length) batches = batches.filter(x => x !== b);
+    else { b.text = unknown.map(en => en.q).join(', '); }
+    render(false);
+    if (r.added) { buzz(12); replay($('#itemCount'), 'count-pop'); }
+    r.dupes.forEach(id => replay(document.querySelector(`[data-chip="${CSS.escape(id)}"]`), 'shake'));
+    if (!unknown.length) return;
+  }
+  const askText = unknown.length ? b.text : text;
   let entries = null;
   const timer = setTimeout(() => b.ctrl.abort(), AI_TIMEOUT_MS);
   try {
     // The same words always get the same answer: reuse an earlier result for this text
-    let raw = aiCacheGet(text);
+    let raw = aiCacheGet(askText);
     if (!raw) {
-      const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }), signal: b.ctrl.signal });
-      if (res.ok) { const data = await res.json(); raw = data && Array.isArray(data.items) ? data.items : null; if (raw && raw.length) aiCacheSet(text, raw); }
+      const res = await fetch(AI_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: askText }), signal: b.ctrl.signal });
+      if (res.ok) { const data = await res.json(); raw = data && Array.isArray(data.items) ? data.items : null; if (raw && raw.length) aiCacheSet(askText, raw); }
     }
     const seen = new Set();
     const got = (raw || []).slice(0, 12).map(fromAI).filter(en => en && !seen.has(en.id) && seen.add(en.id));
@@ -1114,14 +1168,97 @@ async function addTyped(raw) {
   if (!batches.includes(b)) return;      // cleared while sorting
   batches = batches.filter(x => x !== b);
   if (entries && entries.some(en => en.ai)) lastAI = true;
-  if (!entries) entries = localEntries(text);
-  if (!entries.length) entries = [{ id: `q:${norm(text) || 'item'}`, label: cap(text).slice(0, 48), q: text }];
+  if (!entries) entries = localEntries(askText);
+  if (!entries.length) entries = [{ id: `q:${norm(askText) || 'item'}`, label: titleCase(askText).slice(0, 48), q: askText }];
   const { added, dupes } = addEntries(entries);
   render(false);
   if (added) { buzz(12); replay($('#itemCount'), 'count-pop'); }
   dupes.forEach(id => replay(document.querySelector(`[data-chip="${CSS.escape(id)}"]`), 'shake'));
 }
-$('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); addTyped(input.value); });
+$('#searchForm').addEventListener('submit', (e) => { e.preventDefault(); hideSuggest(); addTyped(input.value); });
+
+/* --- Suggestions while typing: see where an item goes before adding it --- */
+let SUGGEST = null, sgList = [], sgActive = -1;
+// The most common donations come first in suggestions
+const POPULAR = new Set(['dog food', 'cat food', 'canned food', 'canned beans', 'canned soup', 'winter coat', 'coats', 'clothes', 'shoes', 'diapers', 'baby wipes', 'toilet paper', 'toothpaste', 'rice', 'pasta', 'peanut butter', 'cereal', 'towels', 'blankets', 'backpack', 'toys', 'books', 'kids books', 'milk', 'eggs', 'bread', 'apples', 'furniture', 'chair', 'couch', 'lamp', 'tv', 'laptop', 'microwave', 'medicine', 'paint', 'batteries']);
+const POPULAR_N = new Set([...POPULAR].map(norm));
+function buildSuggest() {
+  SUGGEST = [];
+  ITEMS.forEach(it => it.rawKws.forEach(raw => { if (raw.length >= 3) SUGGEST.push({ kw: norm(raw), text: titleCase(raw), item: it }); }));
+}
+function whereLabel(text) {
+  const r = resolve({ id: 'sg', label: text, q: text });
+  if (r.kind === 'accept') return { tone: 'bg-emerald-500', text: [...new Set(r.options.map(o => shortName(ORGS[o].site)))].join(' or ') };
+  if (r.kind === 'redirect') {
+    const d = REDIRECTS[r.to];
+    const SHORT = { hhw: 'County hazardous waste drop-off', takeback: 'Pharmacy take-back kiosk', mattress: 'Bye Bye Mattress recycling', medloan: 'Medical equipment closet', carseat: 'Car seat recycling', lions: 'Lions Club eyeglass box' };
+    return { tone: 'bg-amber-500', text: d.places ? [...new Set(d.places.map(shortName))].join(' or ') : (SHORT[r.to] || d.name.split(' (')[0]) };
+  }
+  if (r.kind === 'reject') return { tone: 'bg-red-500', text: 'Can’t be donated', red: true };
+  return null;
+}
+// The part being typed right now: the text after the last comma or "and"
+function currentSegment() {
+  const v = input.value, m = v.match(/^(.*(?:,|;|&|\+|\band\b)\s*)?(.*)$/i);
+  return { head: m[1] || '', seg: (m[2] || '').trim() };
+}
+function updateSuggest() {
+  if (!SUGGEST) buildSuggest();
+  const q = norm(currentSegment().seg);
+  if (q.length < 2) return hideSuggest();
+  const scored = [];
+  for (const sg of SUGGEST) {
+    const base = sg.kw.startsWith(q) ? 0 : sg.kw.split(' ').some(w => w.startsWith(q)) ? 1 : -1;
+    if (base >= 0) scored.push({ ...sg, score: base - (POPULAR_N.has(sg.kw) ? 0.5 : 0) });
+  }
+  scored.sort((a, b) => a.score - b.score || a.kw.length - b.kw.length);
+  const seen = new Set();
+  sgList = scored.filter(sg => !seen.has(sg.item) && seen.add(sg.item)).slice(0, 6)
+    .map(sg => ({ ...sg, where: whereLabel(sg.text) })).filter(sg => sg.where);
+  if (!sgList.length) return hideSuggest();
+  sgActive = -1;
+  const ul = $('#suggest');
+  ul.innerHTML = sgList.map((sg, i) => `
+    <li id="sg-${i}" role="option" aria-selected="false" data-sg="${i}" class="sg-opt flex cursor-pointer items-center gap-3 px-4 py-2.5 text-[14.5px] hover:bg-stone-50">
+      <span class="h-2 w-2 shrink-0 rounded-full ${sg.where.tone}"></span>
+      <span class="shrink-0 font-medium text-stone-900">${esc(sg.text)}</span>
+      <span class="ml-auto min-w-0 truncate text-right text-[12.5px] ${sg.where.red ? 'text-red-700' : 'text-stone-500'}">${sg.where.red ? '' : '→ '}${esc(sg.where.text)}</span>
+    </li>`).join('');
+  ul.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+}
+function hideSuggest() {
+  $('#suggest').hidden = true; sgList = []; sgActive = -1;
+  input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant');
+}
+function setActive(i) {
+  sgActive = i;
+  document.querySelectorAll('#suggest .sg-opt').forEach((li, k) => {
+    li.setAttribute('aria-selected', k === i); li.classList.toggle('bg-stone-100', k === i);
+  });
+  if (i >= 0) input.setAttribute('aria-activedescendant', `sg-${i}`); else input.removeAttribute('aria-activedescendant');
+}
+function chooseSuggest(i) {
+  const sg = sgList[i]; if (!sg) return;
+  const { head } = currentSegment();
+  hideSuggest();
+  addTyped(head + sg.text);
+}
+input.addEventListener('input', updateSuggest);
+input.addEventListener('focus', () => { if (input.value) updateSuggest(); });
+input.addEventListener('blur', () => setTimeout(hideSuggest, 120));
+input.addEventListener('keydown', (e) => {
+  if ($('#suggest').hidden) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); setActive((sgActive + 1) % sgList.length); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(sgActive <= 0 ? sgList.length - 1 : sgActive - 1); }
+  else if ((e.key === 'Enter' || e.key === 'Tab') && sgActive >= 0) { e.preventDefault(); chooseSuggest(sgActive); }
+  else if (e.key === 'Escape') { e.preventDefault(); hideSuggest(); }
+});
+$('#suggest').addEventListener('pointerdown', (e) => {
+  const li = e.target.closest('[data-sg]'); if (!li) return;
+  e.preventDefault(); chooseSuggest(Number(li.dataset.sg));
+});
+$('#suggest').addEventListener('pointermove', (e) => { const li = e.target.closest('[data-sg]'); if (li && Number(li.dataset.sg) !== sgActive) setActive(Number(li.dataset.sg)); });
 
 /* =====================================================================
    PHOTO SCAN: snap the donation pile, Claude lists what it sees, the trip plans itself
@@ -1210,10 +1347,19 @@ addEventListener('drop', (e) => {
 });
 input.addEventListener('paste', (e) => {
   const f = [...(e.clipboardData?.files || [])].find(x => /^image\//.test(x.type));
-  if (f) { e.preventDefault(); runPhoto(f); }
+  if (f) { e.preventDefault(); runPhoto(f); return; }
+  const text = e.clipboardData?.getData('text') || '';
+  if (/\r?\n/.test(text.trim())) {   // a pasted list: add every line at once
+    e.preventDefault();
+    hideSuggest();
+    addTyped([input.value, ...text.split(/\r?\n/)].map(l => l.replace(/^\s*(?:[-*•·]|\d+[.)])\s*/, '').trim()).filter(Boolean).join(', '));
+  }
 });
-const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? 'Add an item…' : 'Type an item, press Enter'; };
+const HINTS = ['winter coat', 'canned beans', 'dog food', 'a bag of kids clothes', 'diapers', 'an old lamp', 'peanut butter', 'towels'];
+let hintI = 0;
+const setPlaceholder = () => { input.placeholder = innerWidth < 520 ? `Try “${HINTS[hintI]}”` : `Type an item, like “${HINTS[hintI]}”`; };
 setPlaceholder(); addEventListener('resize', setPlaceholder);
+setInterval(() => { if (!input.value && document.visibilityState === 'visible') { hintI = (hintI + 1) % HINTS.length; setPlaceholder(); } }, 2800);
 
 /* =====================================================================
    RESULT CARD: trip summary, numbered stops, then what stays home
@@ -1228,7 +1374,7 @@ const HOW = {
   goodwill: 'Pull up to the donation drop-off and an attendant will help unload; ask for a receipt for your taxes.',
 };
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
-const tag = (i, cls) => `<span class="${fresh.has(i.id) ? 'tag-new ' : ''}inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${esc(i.label)}${i.hot ? '<span class="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-red-700">needed</span>' : ''}</span>`;
+const tag = (i, cls) => `<span data-tag="${esc(i.id)}" class="${fresh.has(i.id) ? 'tag-new ' : ''}inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${esc(i.label)}${i.hot ? '<span class="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-red-700">needed</span>' : ''}</span>`;
 
 // Several places: one Google Maps trip through all of them, starting from the donor's location
 function tripButton() {
