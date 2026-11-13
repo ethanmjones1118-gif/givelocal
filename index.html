@@ -133,7 +133,7 @@
 
       </div>
 
-      <div class="min-w-0 min-[960px]:sticky min-[960px]:top-20 min-[960px]:max-h-[calc(100vh-6rem)] min-[960px]:overflow-y-auto min-[960px]:-mx-2 min-[960px]:px-2 min-[960px]:pb-4">
+      <div class="min-w-0">
       <div class="scroll-mt-16 mt-8 border-t border-stone-300/70 pt-7 min-[960px]:mt-1 min-[960px]:border-0 min-[960px]:pt-0"><h2 class="font-display text-[24px] font-medium tracking-[-0.01em]">Where to take it</h2></div>
       <div id="resultLeft" class="mt-4 scroll-mt-24" aria-live="polite"></div>
 
@@ -965,7 +965,8 @@ const input = $('#searchInput');
 const isDefault = () => !selection.length && !pending && !photoNote && !batches.length;
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function replay(el, cls) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
-const buzz = (ms = 8) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (_) {} };
+// Only right after a tap: browsers block (and log) vibration at any other time
+const buzz = (ms = 8) => { try { if (navigator.vibrate && navigator.userActivation?.isActive) navigator.vibrate(ms); } catch (_) {} };
 
 function setBusy(on) { $('#photoBtn').disabled = on; }
 function cancelSearch() {
