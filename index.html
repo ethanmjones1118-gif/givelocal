@@ -1214,14 +1214,18 @@ function updateSuggest() {
   if (!SUGGEST) buildSuggest();
   const { head, seg } = currentSegment(), q = norm(seg);
   ghostSg = null;
-  if (!ghostOff && q.length >= 2 && seg === input.value.slice(head.length) && input.selectionStart === input.value.length) {
+  if (!ghostOff && q.length >= 3 && seg === input.value.slice(head.length) && input.selectionStart === input.value.length) {
     let best = null;
+    const items = new Set();
     for (const sg of SUGGEST) {
       if (!sg.kw.startsWith(q) || !sg.raw.startsWith(seg.toLowerCase())) continue;
+      items.add(sg.item);
       const score = (POPULAR_N.has(sg.kw) ? 0 : 1) * 100 + sg.kw.length;
       if (!best || score < best.score) best = { ...sg, score };
     }
-    if (best) { const where = whereLabel(best.text); if (where) ghostSg = { ...best, where, head, seg }; }
+    // Only suggest when we're confident: one possible item, most of the word typed, or a common donation after 4+ letters
+    const confident = best && (items.size === 1 || q.length / best.kw.length >= 0.6 || (q.length >= 4 && POPULAR_N.has(best.kw)));
+    if (confident) { const where = whereLabel(best.text); if (where) ghostSg = { ...best, where, head, seg }; }
   }
   renderGhost();
 }
