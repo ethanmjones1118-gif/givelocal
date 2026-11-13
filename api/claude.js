@@ -57,6 +57,9 @@ Destinations:
 Examples: sealed candy and snacks -> second_harvest; fish food, bird seed and pet cages -> humane_society;
 grocery gift cards -> sacred_heart; adult books, textbooks, kitchenware and household items -> goodwill_sv;
 fresh milk, meat, frozen food and cakes -> reject (they need refrigeration); cribs and used pillows -> reject.
+Milk: plain "milk", a jug or a carton from the fridge (whole, 2%, organic, almond, oat) -> reject, labeled "Milk" or "Fresh Milk".
+Only milk clearly described or shown as shelf-stable (boxed UHT, powdered, evaporated, condensed, canned) -> second_harvest,
+labeled "Shelf-stable Milk". Never relabel plain milk as shelf-stable.
 When an item's condition is the problem, put it in the label ("Opened Cereal", "Broken Microwave").
 Only reject an item for a real reason from the list above; when in doubt, choose the place that takes that kind of item.
 Use "unknown" only when you truly can't tell what an item is.
