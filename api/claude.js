@@ -5,7 +5,7 @@
 // The page falls back to its built-in rules engine on any non-200 answer.
 
 // First choice, then a fallback if the first model is unavailable on this account.
-const MODELS = ['claude-haiku-4-5', 'claude-haiku-5-5'];
+const MODELS = ['claude-haiku-5-5', 'claude-haiku-4-5'];
 const MAX_INPUT = 400;
 const TIME_LIMIT_MS = 4000;   // total budget for text, so the page never waits long before using its own rules
 const PHOTO_TIME_LIMIT_MS = 15000;   // reading a photo takes longer, and there's no local fallback for it
