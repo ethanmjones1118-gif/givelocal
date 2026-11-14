@@ -96,7 +96,7 @@ const SCHEMA = {
 
 // Simple per-visitor limit so the public link can't be used to run up the API bill.
 // Kept in memory per server instance: a speed bump, not a guarantee (also set a spend limit in the Anthropic Console).
-const WINDOW_MS = 60_000, MAX_POINTS = 20;   // a typed search costs 1 point, a photo 4
+const WINDOW_MS = 60_000, MAX_POINTS = 60;   // a typed search costs 1 point, a photo 4; high enough for a room sharing one Wi-Fi address
 const hits = new Map();
 function overLimit(ip, points) {
   const now = Date.now();
