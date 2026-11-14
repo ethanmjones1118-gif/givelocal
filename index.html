@@ -135,7 +135,7 @@
     <section id="panel-needs" class="hidden max-w-3xl">
       <h1 class="font-display text-[34px] sm:text-[44px] font-medium tracking-[-0.02em] leading-[1.05] text-balance">What pantries need now</h1>
       <p class="mt-3 text-[15.5px] text-stone-600 max-w-[34rem]">Buying something to give? Here’s what each place is short on this week.</p>
-      <div id="orgBtns" role="tablist" aria-label="Organizations" class="mt-8 flex sm:gap-6 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-stone-300/70"></div>
+      <div id="orgBtns" role="tablist" aria-label="Organizations" class="mt-8 flex gap-5 sm:gap-6 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-stone-300/70"></div>
       <div id="needCard" class="mt-6"></div>
       <div class="mt-8 flex justify-end">
         <button id="staffBtn" type="button" class="inline-flex items-center gap-1 text-[12.5px] font-medium text-stone-500 underline decoration-stone-300 underline-offset-4 hover:text-stone-900">Staff demo: add an urgent need</button>
@@ -203,6 +203,8 @@ const SITES = {
   sacred:  { lat: 37.31676, lng: -121.87399, label: 'Sacred Heart' },
   harvest: { lat: 37.41367, lng: -121.95190, label: 'Second Harvest' },
   humane:  { lat: 37.42175, lng: -121.88758, label: 'Humane Society SV', dir: 'below' },
+  milpitas:{ lat: 37.41019, lng: -121.90230, label: 'Milpitas Food Pantry' },
+  cityteam:{ lat: 37.36508, lng: -121.89577, label: 'CityTeam San Jose' },
   // Other local drop-offs for furniture, appliances and electronics
   restore: { lat: 37.35986, lng: -121.86785, label: 'ReStore', partner: true },
   goodwill:{ lat: 37.35954, lng: -121.89829, label: 'Goodwill', partner: true },
@@ -214,6 +216,10 @@ const ORGS = {
   closet:  { site: 'sacred',  name: 'Sacred Heart Clothes Closet', address: '1381 S. 1st St, San Jose, CA 95110', days: [1,2,3,4,5], open: '9 AM', close: '3:30 PM' },
   harvest: { site: 'harvest', name: 'Second Harvest of Silicon Valley', address: '4001 N. 1st St, San Jose, CA 95134', days: [1,2,3,4,5], open: '8 AM', close: '4 PM' },
   humane:  { site: 'humane',  name: 'Humane Society Silicon Valley', address: '901 Ames Ave, Milpitas, CA 95035', days: [0,1,2,3,4,5,6], open: '11 AM', close: '6 PM' },
+  // Hours from the City of Milpitas listing (it also opens Thu 6–8 PM and Sat 10 AM–12 PM)
+  milpitas:{ site: 'milpitas', name: 'Milpitas Food Pantry', address: '1440 S. Main St, Milpitas, CA 95035', days: [1,2,3,4], open: '9 AM', close: '1 PM' },
+  // Drop-off hours aren't published, so the page says to call ahead instead of guessing
+  cityteam:{ site: 'cityteam', name: 'CityTeam San Jose', address: '1297 N. 13th St, San Jose, CA 95112', days: [1,2,3,4,5], open: '9 AM', close: '5 PM', vary: true },
 };
 const DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const toMin = (t) => { const m = /(\d+)(?::(\d+))?\s*(AM|PM)/i.exec(t); return ((+m[1] % 12) + (m[3].toUpperCase() === 'PM' ? 12 : 0)) * 60 + (+m[2] || 0); };
@@ -242,7 +248,8 @@ const hoursLine = (o) => `${o.days.length === 7 ? 'Daily' : 'Mon–Fri'}, ${o.op
 /* =====================================================================
    TAB 2 DATA: published priority needs per organization (editable in Staff Demo)
    ===================================================================== */
-const NEED_ORGS = ['sacred', 'harvest', 'humane'];
+const NEED_ORGS = ['sacred', 'harvest', 'humane', 'milpitas', 'cityteam'];
+const TAB_LABEL = { sacred: 'Sacred Heart', harvest: 'Second Harvest', humane: 'Humane Society', milpitas: 'Milpitas Pantry', cityteam: 'CityTeam' };
 const SEED_NEEDS = {
   sacred: {
     items: [
@@ -274,9 +281,29 @@ const SEED_NEEDS = {
     doNot: ['Opened food bags', 'Feather or down bedding', 'Pillows', 'Medications', 'Damaged crates'],
     arrival: 'Park in the front lot; the donation bin is just left of the main entrance. Large crates go to the front desk.',
   },
+  milpitas: {
+    items: [
+      { program: 'Food Pantry',      title: 'Canned Chili & Stew',        spec: 'Hearty meals in pull-tab cans' },
+      { program: 'Family Groceries', title: 'Breakfast Cereal & Oatmeal', spec: 'Sealed boxes and canisters' },
+      { program: 'Household',        title: 'Toilet Paper & Dish Soap',   spec: 'Unopened packs and bottles' },
+    ],
+    staples: ['Rice & pasta', 'Canned vegetables', 'Peanut butter in plastic jars', 'Cooking oil'],
+    doNot: ['Glass jars', 'Opened or expired food', 'Home-cooked food'],
+    arrival: 'Bring sealed food during pantry hours and check in at the front.',
+  },
+  cityteam: {
+    items: [
+      { program: 'Food Pantry',  title: 'Canned Soup & Ravioli',      spec: 'Pull-tab cans that need no can opener' },
+      { program: 'Holiday Meals', title: 'Stuffing & Instant Potatoes', spec: 'Sealed boxes for family meal bags' },
+      { program: 'Food Pantry',  title: 'Granola Bars & Snacks',      spec: 'Individually wrapped, sealed boxes' },
+    ],
+    staples: ['Canned fruit', 'Pasta & sauce in plastic jars', 'Dry beans', 'Tuna'],
+    doNot: ['Glass jars', 'Opened or expired food', 'Home-cooked food'],
+    arrival: 'Call ahead to set a drop-off time; large food drives can arrange a pickup.',
+  },
 };
 let needs = JSON.parse(JSON.stringify(SEED_NEEDS));
-const SEED_UPDATED = { sacred: Date.now() - 2 * 3600e3, harvest: Date.now() - 5 * 3600e3, humane: Date.now() - 26 * 3600e3 };
+const SEED_UPDATED = { sacred: Date.now() - 2 * 3600e3, harvest: Date.now() - 5 * 3600e3, humane: Date.now() - 26 * 3600e3, milpitas: Date.now() - 30 * 3600e3, cityteam: Date.now() - 3 * 86400e3 };
 let updated = { ...SEED_UPDATED };
 let selectedOrg = 'sacred';
 
@@ -330,8 +357,9 @@ const A = (name, kw, dest, g, note, extra = {}) => ({ kind: 'accept', name, kw, 
 const HOUSEHOLD = 'Household Furniture & Appliances (Redirect)';
 const R = (name, kw, to, why, rtype, group = null) => ({ kind: 'redirect', name, kw, to, why, rtype, group, g: 'other' });
 const X = (name, kw, why, instead) => ({ kind: 'reject', name, kw, why, instead, g: 'other' });
-const H = { alt: ['sacred'] };   // pantry food Second Harvest takes, Sacred Heart also takes
-const S = { alt: ['harvest'] };  // pantry food Sacred Heart takes, Second Harvest also takes
+// Packaged pantry food: every food pantry takes it, and the trip planner picks the stop that fits best
+const H = { alt: ['sacred', 'milpitas', 'cityteam'] };   // Second Harvest first
+const S = { alt: ['harvest', 'milpitas', 'cityteam'] };  // Sacred Heart first
 
 const ITEMS = [
   // --- Food pantry ---
@@ -613,6 +641,7 @@ function toast(text, action) {
    TABS
    ===================================================================== */
 function setTab(name) {
+  setTimeout(() => { try { tabFade(); } catch (_) {} }, 0);
   const needsView = name === 'needs';
   $('#panel-give').hidden = needsView;
   $('#panel-needs').classList.toggle('hidden', !needsView);
@@ -661,6 +690,7 @@ function openState(o) {
   return { open: h.open, detail: h.text.replace(/^(Open|Closed) now · /, '').replace(/^Opens/, 'opens') };
 }
 const openBadge = (o) => {
+  if (o.vary) return '<span class="text-[12.5px] text-stone-500">Hours vary · call ahead</span>';
   const s = openState(o);
   return `<span class="inline-flex items-center gap-1 text-[12.5px] font-semibold ${s.open ? 'text-emerald-700' : 'text-stone-500'}">${s.open ? '● Open Now' : '○ Closed'}<span class="font-normal text-stone-500">· ${s.detail}</span></span>`;
 };
@@ -1369,6 +1399,8 @@ const HOW = {
   humane: 'Park in the front lot; the donation bin is just left of the main entrance.',
   restore: 'Bring furniture and appliances clean and in working order; staff at the donation area help with large items.',
   goodwill: 'Pull up to the donation drop-off and an attendant will help unload; ask for a receipt for your taxes.',
+  milpitas: 'Bring sealed food during pantry hours and check in at the front; call ahead for a large drop-off.',
+  cityteam: 'Call ahead to set a drop-off time; large food drives can arrange a pickup.',
 };
 const shortName = (k) => siteName(k).replace(/ of Silicon Valley| Silicon Valley| Community Service|Habitat for Humanity /g, '');
 const tag = (i, cls) => `<span data-tag="${esc(i.id)}" class="${fresh.has(i.id) ? 'tag-new ' : ''}inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12.5px] font-medium ${cls}" ${i.note ? `title="${esc(i.note)}"` : ''}>${esc(i.label)}${i.hot ? '<span class="ml-0.5 rounded-full bg-red-50 px-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-red-700">needed</span>' : ''}</span>`;
@@ -1523,13 +1555,21 @@ function render(animate = true) {
    TAB 2: WHAT EACH ORGANIZATION NEEDS (every need is tappable)
    ===================================================================== */
 $('#orgBtns').innerHTML = NEED_ORGS.map(k => `
-  <button type="button" role="tab" data-org="${k}" aria-selected="false" class="org-btn -mb-px flex-1 sm:flex-none text-center sm:text-left border-b-2 border-transparent pb-3 pt-1 text-[13.5px] sm:text-[14.5px] font-medium text-stone-500 whitespace-nowrap hover:text-stone-900 transition">${shortName(ORGS[k].site)}</button>`).join('');
+  <button type="button" role="tab" data-org="${k}" aria-selected="false" class="org-btn -mb-px shrink-0 border-b-2 border-transparent pb-3 pt-1 text-[13.5px] sm:text-[14.5px] font-medium text-stone-500 whitespace-nowrap hover:text-stone-900 transition">${TAB_LABEL[k]}</button>`).join('');
 $('#orgBtns').addEventListener('click', (e) => {
   const b = e.target.closest('[data-org]');
   if (!b) return;
   selectedOrg = b.dataset.org;
   renderNeedCard();
+  b.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion() ? 'auto' : 'smooth' });
 });
+// On narrow screens the tab row scrolls: fade the right edge while more tabs are hidden there
+function tabFade() {
+  const t = $('#orgBtns'), more = t.scrollLeft + t.clientWidth < t.scrollWidth - 2;
+  t.style.maskImage = t.style.webkitMaskImage = more ? 'linear-gradient(to right, #000 78%, transparent)' : '';
+}
+$('#orgBtns').addEventListener('scroll', tabFade, { passive: true });
+addEventListener('resize', tabFade);
 
 function renderNeedCard() {
   document.querySelectorAll('.org-btn').forEach(b => {
